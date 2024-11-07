@@ -1,17 +1,17 @@
 mod app;
-use app::App;
+use app::{App, Pane};
 use crossterm::{
-    event::{self, Event, KeyCode},
+    event::{self, Event, KeyCode, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
-    Terminal,
+    Frame, Terminal,
 };
 use std::{
     error::Error,
@@ -20,43 +20,68 @@ use std::{
     path::Path,
 };
 
+fn render_pane(
+    f: &mut Frame,
+    area: Rect,
+    lines: &[String],
+    selected_index: usize,
+    is_active: bool,
+    title: &str,
+) {
+    let width = area.width as usize;
+
+    let text: Vec<Line> = lines
+        .iter()
+        .enumerate()
+        .map(|(i, line)| {
+            let padded_line = if line.len() < width {
+                format!("{:<width$}", line, width = width)
+            } else {
+                line.clone()
+            };
+
+            let style = if i == selected_index && is_active {
+                Style::default()
+                    .fg(Color::Yellow)
+                    .bg(Color::Blue)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default()
+            };
+
+            Line::from(Span::styled(padded_line, style))
+        })
+        .collect();
+
+    let paragraph = Paragraph::new(text).block(Block::default().borders(Borders::ALL).title(title));
+    f.render_widget(paragraph, area);
+}
+
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<()> {
     loop {
         terminal.draw(|f| {
             let size = f.area();
-            let width = size.width as usize; // Get the width of the frame
             let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Min(1)].as_ref())
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Percentage(25), Constraint::Percentage(75)].as_ref())
                 .split(size);
 
-            let text: Vec<Line> = app
-                .lines
-                .iter()
-                .enumerate()
-                .map(|(i, line)| {
-                    // Add padding to fill the line to the full width of the frame
-                    let padded_line = if line.len() < width {
-                        format!("{:<width$}", line, width = width)
-                    } else {
-                        line.clone()
-                    };
-
-                    let style = if i == app.selected_index {
-                        Style::default()
-                            .fg(Color::Yellow)
-                            .bg(Color::Blue)
-                            .add_modifier(Modifier::BOLD)
-                    } else {
-                        Style::default()
-                    };
-                    Line::from(Span::styled(padded_line, style))
-                })
-                .collect();
-
-            let paragraph = Paragraph::new(text)
-                .block(Block::default().borders(Borders::ALL).title("File Viewer"));
-            f.render_widget(paragraph, chunks[0]);
+            render_pane(
+                f,
+                chunks[0],
+                &app.left_lines,
+                app.left_index,
+                app.active_pane == Pane::Left,
+                "Left Pane",
+            );
+            render_pane(
+                f,
+                chunks[1],
+                &app.right_lines,
+                app.right_index,
+                app.active_pane == Pane::Right,
+                "Right Pane",
+            );
         })?;
 
         if event::poll(std::time::Duration::from_millis(100))? {
@@ -65,6 +90,12 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                     KeyCode::Char('q') => break,
                     KeyCode::Char('j') => app.next(),
                     KeyCode::Char('k') => app.previous(),
+                    KeyCode::Char('h') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                        app.switch_to_left()
+                    }
+                    KeyCode::Char('l') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                        app.switch_to_right()
+                    }
                     _ => {}
                 }
             }
@@ -74,8 +105,10 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let file_path = "file.txt"; // TODO: This eventually should load content dynamically
-    let lines = read_lines(file_path)?;
+    let left_file = "file.txt"; // TODO: This should eventually load content dynamically
+    let right_file = "file.txt"; // TODO: This as well
+    let left_lines = read_lines(left_file)?;
+    let right_lines = read_lines(right_file)?;
 
     // Enter alternate screen
     enable_raw_mode()?;
@@ -85,7 +118,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     terminal.clear()?;
-    let mut app = App::new(lines);
+    let mut app = App::new(left_lines, right_lines);
     let result = run_app(&mut terminal, &mut app);
 
     // Clean up: Leave alternate screen, disable raw mode, show cursor
@@ -105,5 +138,5 @@ where
 {
     let file = File::open(filename)?;
     let reader = BufReader::new(file);
-    Ok(reader.lines().filter_map(|line| line.ok()).collect())
+    Ok(reader.lines().map_while(Result::ok).collect())
 }

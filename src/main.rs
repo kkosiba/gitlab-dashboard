@@ -1,5 +1,5 @@
 mod app;
-use app::{App, Pane};
+use app::{ApiStatus, App, Pane};
 use crossterm::{
     event::{self, Event, KeyCode, KeyModifiers},
     execute,
@@ -7,85 +7,82 @@ use crossterm::{
 };
 use ratatui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
-    Frame, Terminal,
+    Terminal,
 };
 use std::{
     error::Error,
-    fs::File,
-    io::{self, BufRead, BufReader},
-    path::Path,
+    io,
+    sync::{Arc, Mutex},
+    thread,
+    time::Duration,
 };
+use tokio::runtime::Runtime;
 
-fn render_pane(
-    f: &mut Frame,
-    area: Rect,
-    lines: &[String],
-    selected_index: usize,
-    is_active: bool,
-    title: &str,
-) {
-    let width = area.width as usize;
-
-    let text: Vec<Line> = lines
-        .iter()
-        .enumerate()
-        .map(|(i, line)| {
-            let padded_line = if line.len() < width {
-                format!("{:<width$}", line, width = width)
-            } else {
-                line.clone()
-            };
-
-            let style = if i == selected_index && is_active {
-                Style::default()
-                    .fg(Color::Yellow)
-                    .bg(Color::Blue)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default()
-            };
-
-            Line::from(Span::styled(padded_line, style))
-        })
-        .collect();
-
-    let paragraph = Paragraph::new(text).block(Block::default().borders(Borders::ALL).title(title));
-    f.render_widget(paragraph, area);
-}
-
-fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<()> {
+fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &Arc<Mutex<App>>) -> io::Result<()> {
     loop {
         terminal.draw(|f| {
+            let app = app.lock().unwrap();
             let size = f.area();
             let chunks = Layout::default()
                 .direction(Direction::Horizontal)
-                .constraints([Constraint::Percentage(25), Constraint::Percentage(75)].as_ref())
+                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
                 .split(size);
 
-            render_pane(
-                f,
-                chunks[0],
-                &app.left_lines,
-                app.left_index,
-                app.active_pane == Pane::Left,
-                "Left Pane",
-            );
-            render_pane(
-                f,
-                chunks[1],
-                &app.right_lines,
-                app.right_index,
-                app.active_pane == Pane::Right,
-                "Right Pane",
-            );
+            let left_lines = match &*app.api_status_left.lock().unwrap() {
+                ApiStatus::Loading => vec![Line::from(Span::raw("Loading..."))],
+                ApiStatus::Loaded(lines) => lines
+                    .iter()
+                    .enumerate()
+                    .map(|(i, line)| {
+                        let style = if i == app.left_index && matches!(app.active_pane, Pane::Left)
+                        {
+                            Style::default()
+                                .fg(Color::Yellow)
+                                .bg(Color::Blue)
+                                .add_modifier(Modifier::BOLD)
+                        } else {
+                            Style::default()
+                        };
+                        Line::from(Span::styled(line.clone(), style))
+                    })
+                    .collect(),
+            };
+
+            let paragraph = Paragraph::new(left_lines)
+                .block(Block::default().borders(Borders::ALL).title("Left Pane"));
+            f.render_widget(paragraph, chunks[0]);
+
+            let right_lines = match &*app.api_status_right.lock().unwrap() {
+                ApiStatus::Loading => vec![Line::from(Span::raw("Loading..."))],
+                ApiStatus::Loaded(lines) => lines
+                    .iter()
+                    .enumerate()
+                    .map(|(i, line)| {
+                        let style =
+                            if i == app.right_index && matches!(app.active_pane, Pane::Right) {
+                                Style::default()
+                                    .fg(Color::Yellow)
+                                    .bg(Color::Blue)
+                                    .add_modifier(Modifier::BOLD)
+                            } else {
+                                Style::default()
+                            };
+                        Line::from(Span::styled(line.clone(), style))
+                    })
+                    .collect(),
+            };
+            let paragraph = Paragraph::new(right_lines)
+                .block(Block::default().borders(Borders::ALL).title("Right Pane"));
+            f.render_widget(paragraph, chunks[1]);
         })?;
 
-        if event::poll(std::time::Duration::from_millis(100))? {
+        if event::poll(Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
+                let mut app = app.lock().unwrap();
                 match key.code {
                     KeyCode::Char('q') => break,
                     KeyCode::Char('j') => app.next(),
@@ -104,23 +101,51 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
     Ok(())
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let left_file = "file.txt"; // TODO: This should eventually load content dynamically
-    let right_file = "file.txt"; // TODO: This as well
-    let left_lines = read_lines(left_file)?;
-    let right_lines = read_lines(right_file)?;
-
-    // Enter alternate screen
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    // ratatui boilerplate code
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
-
     terminal.clear()?;
-    let mut app = App::new(left_lines, right_lines);
-    let result = run_app(&mut terminal, &mut app);
 
+    let app = Arc::new(Mutex::new(App::new()));
+    let app_clone_left = Arc::clone(&app);
+    let app_clone_right = Arc::clone(&app);
+
+    thread::spawn(move || {
+        let rt = Runtime::new().unwrap();
+        rt.block_on(async {
+            let posts = fetch_posts(10)
+                .await
+                .unwrap_or_else(|_| vec![String::from("Failed to load posts.")]);
+            *app_clone_left
+                .lock()
+                .unwrap()
+                .api_status_left
+                .lock()
+                .unwrap() = ApiStatus::Loaded(posts);
+        });
+    });
+    thread::spawn(move || {
+        let rt = Runtime::new().unwrap();
+        rt.block_on(async {
+            let posts = fetch_posts(20)
+                .await
+                .unwrap_or_else(|_| vec![String::from("Failed to load posts.")]);
+            *app_clone_right
+                .lock()
+                .unwrap()
+                .api_status_right
+                .lock()
+                .unwrap() = ApiStatus::Loaded(posts);
+        });
+    });
+    let result = run_app(&mut terminal, &app);
+
+    // More ratatui boilerplate
     // Clean up: Leave alternate screen, disable raw mode, show cursor
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
@@ -132,11 +157,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn read_lines<P>(filename: P) -> Result<Vec<String>, io::Error>
-where
-    P: AsRef<Path>,
-{
-    let file = File::open(filename)?;
-    let reader = BufReader::new(file);
-    Ok(reader.lines().map_while(Result::ok).collect())
+async fn fetch_posts(num: usize) -> Result<Vec<String>, reqwest::Error> {
+    let url = "https://jsonplaceholder.typicode.com/posts"; // TODO: Make this configurable later
+    let response = reqwest::get(url)
+        .await?
+        .json::<Vec<serde_json::Value>>()
+        .await?;
+
+    Ok(response
+        .iter()
+        .take(num)
+        .map(|post| post["title"].as_str().unwrap_or("Untitled").to_string())
+        .collect())
 }

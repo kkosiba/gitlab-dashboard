@@ -1,22 +1,29 @@
+use std::sync::{Arc, Mutex};
+
 #[derive(PartialEq)]
 pub enum Pane {
     Left,
     Right,
 }
 
+pub enum ApiStatus {
+    Loading,
+    Loaded(Vec<String>),
+}
+
 pub struct App {
-    pub left_lines: Vec<String>,
-    pub right_lines: Vec<String>,
+    pub api_status_left: Arc<Mutex<ApiStatus>>,
+    pub api_status_right: Arc<Mutex<ApiStatus>>,
     pub left_index: usize,
     pub right_index: usize,
     pub active_pane: Pane,
 }
 
 impl App {
-    pub fn new(left_lines: Vec<String>, right_lines: Vec<String>) -> Self {
+    pub fn new() -> Self {
         App {
-            left_lines,
-            right_lines,
+            api_status_left: Arc::new(Mutex::new(ApiStatus::Loading)),
+            api_status_right: Arc::new(Mutex::new(ApiStatus::Loading)),
             left_index: 0,
             right_index: 0,
             active_pane: Pane::Left,
@@ -26,13 +33,17 @@ impl App {
     pub fn next(&mut self) {
         match self.active_pane {
             Pane::Left => {
-                if self.left_index < self.left_lines.len() - 1 {
-                    self.left_index += 1;
+                if let ApiStatus::Loaded(lines) = &*self.api_status_left.lock().unwrap() {
+                    if self.left_index < lines.len() - 1 {
+                        self.left_index += 1;
+                    }
                 }
             }
             Pane::Right => {
-                if self.right_index < self.right_lines.len() - 1 {
-                    self.right_index += 1;
+                if let ApiStatus::Loaded(lines) = &*self.api_status_right.lock().unwrap() {
+                    if self.right_index < lines.len() - 1 {
+                        self.right_index += 1;
+                    }
                 }
             }
         }

@@ -1,0 +1,3 @@
+[core]
+gitlab_url = "https://gitlab.example.com"
+gitlab_projects = ["group1/subgroupA/project1", "group2/subgroupB/project2"]

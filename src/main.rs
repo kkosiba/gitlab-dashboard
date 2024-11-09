@@ -1,5 +1,8 @@
 mod app;
 use app::{ApiStatus, App, Pane};
+mod cli;
+use clap::Parser;
+use cli::{Cli, Config};
 use crossterm::{
     event::{self, Event, KeyCode, KeyModifiers},
     execute,
@@ -110,6 +113,11 @@ fn handle_event(app: &Arc<Mutex<App>>) -> Result<bool, Box<dyn Error>> {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let args = Cli::parse();
+    let config = Config::new(args.config_file);
+    // TODO: Do something with config later
+    println!("Loaded config {:?}", config);
+
     // ratatui boilerplate code
     enable_raw_mode()?;
     let mut stdout = io::stdout();

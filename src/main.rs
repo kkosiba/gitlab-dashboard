@@ -16,7 +16,6 @@ use std::{error::Error, io};
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::parse();
     let config = Config::new(args.config_file);
-    let tab_titles = config.core.gitlab_projects.clone();
 
     // ratatui boilerplate code
     enable_raw_mode()?;
@@ -26,7 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
     terminal.clear()?;
 
-    let mut app = App::new(tab_titles);
+    let mut app = App::new(config);
     let result = app.run(&mut terminal);
 
     // Clean up: Leave alternate screen, disable raw mode, show cursor

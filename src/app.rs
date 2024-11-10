@@ -9,6 +9,8 @@ use ratatui::{
 };
 use std::{error::Error, time::Duration};
 
+use crate::config::Config;
+
 #[derive(PartialEq)]
 enum Pane {
     Left,
@@ -21,18 +23,19 @@ enum ApiStatus {
 }
 
 pub struct App {
+    config: Config,
     api_status_left: ApiStatus,
     api_status_right: ApiStatus,
     left_index: usize,
     right_index: usize,
     active_pane: Pane,
-    pub tab_titles: Vec<String>,
     active_tab: usize,
 }
 
 impl App {
-    pub fn new(tab_titles: Vec<String>) -> Self {
-        App {
+    pub fn new(config: Config) -> Self {
+        Self {
+            config,
             api_status_left: ApiStatus::Loaded(vec![
                 String::from("Pipelines"),
                 String::from("Schedules"),
@@ -45,7 +48,6 @@ impl App {
             left_index: 0,
             right_index: 0,
             active_pane: Pane::Left,
-            tab_titles,
             active_tab: 0,
         }
     }
@@ -92,8 +94,12 @@ impl App {
         self.active_pane = Pane::Right;
     }
 
+    fn get_projects(&self) -> &Vec<String> {
+        &self.config.core.gitlab_projects
+    }
+
     fn next_tab(&mut self) {
-        self.active_tab = (self.active_tab + 1) % self.tab_titles.len();
+        self.active_tab = (self.active_tab + 1) % self.get_projects().len();
     }
 
     fn previous_tab(&mut self) {
@@ -150,7 +156,7 @@ impl App {
     }
 
     fn render_tabs(&self, f: &mut Frame, area: Rect) {
-        let tab_spans: Vec<Span> = self.tab_titles.iter().map(Span::raw).collect();
+        let tab_spans: Vec<Span> = self.get_projects().iter().map(Span::raw).collect();
         let tabs = Tabs::new(tab_spans)
             .select(self.active_tab)
             .block(

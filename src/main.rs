@@ -1,7 +1,9 @@
 mod app;
-use app::{ApiStatus, App, Pane};
 mod cli;
 mod config;
+mod ui;
+
+use app::{ApiStatus, App, Pane};
 use clap::Parser;
 use cli::Cli;
 use config::Config;
@@ -12,11 +14,7 @@ use crossterm::{
 };
 use ratatui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
-    text::{Line, Span},
-    widgets::{Block, Borders, Paragraph},
-    Frame, Terminal,
+    Terminal,
 };
 use std::{
     error::Error,
@@ -32,64 +30,16 @@ fn run_app<B: Backend>(
     app: &Arc<Mutex<App>>,
 ) -> Result<(), Box<dyn Error>> {
     loop {
-        // Draw the UI with refactored pane rendering
         terminal.draw(|f| {
             let app = app.lock().unwrap();
-            let size = f.area();
-            let chunks = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([Constraint::Percentage(25), Constraint::Percentage(75)].as_ref())
-                .split(size);
-
-            // Render left and right panes
-            render_pane(f, &app, Pane::Left, chunks[0]);
-            render_pane(f, &app, Pane::Right, chunks[1]);
+            ui::draw(f, &app);
         })?;
 
-        // Handle keyboard events
-        if handle_event(&app)? {
+        if handle_event(app)? {
             break;
         }
     }
     Ok(())
-}
-
-fn render_pane(f: &mut Frame, app: &App, pane: Pane, area: Rect) {
-    let (lines, index, title) = match pane {
-        Pane::Left => (
-            &*app.api_status_left.lock().unwrap(),
-            app.left_index,
-            "Left Pane",
-        ),
-        Pane::Right => (
-            &*app.api_status_right.lock().unwrap(),
-            app.right_index,
-            "Right Pane",
-        ),
-    };
-
-    let styled_lines: Vec<Line> = match lines {
-        ApiStatus::Loading => vec![Line::from(Span::raw("Loading..."))],
-        ApiStatus::Loaded(content) => content
-            .iter()
-            .enumerate()
-            .map(|(i, line)| {
-                let style = if i == index && &app.active_pane == &pane {
-                    Style::default()
-                        .fg(Color::Yellow)
-                        .bg(Color::Blue)
-                        .add_modifier(Modifier::BOLD)
-                } else {
-                    Style::default()
-                };
-                Line::from(Span::styled(line.clone(), style))
-            })
-            .collect(),
-    };
-
-    let paragraph =
-        Paragraph::new(styled_lines).block(Block::default().borders(Borders::ALL).title(title));
-    f.render_widget(paragraph, area);
 }
 
 fn handle_event(app: &Arc<Mutex<App>>) -> Result<bool, Box<dyn Error>> {
@@ -106,6 +56,8 @@ fn handle_event(app: &Arc<Mutex<App>>) -> Result<bool, Box<dyn Error>> {
                 KeyCode::Char('l') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                     app.switch_to_right()
                 }
+                KeyCode::Tab => app.next_tab(),
+                KeyCode::BackTab => app.previous_tab(), // BackTab = Shift + Tab
                 _ => {}
             }
         }

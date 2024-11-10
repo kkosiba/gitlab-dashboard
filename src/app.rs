@@ -17,6 +17,7 @@ pub struct App {
     pub left_index: usize,
     pub right_index: usize,
     pub active_pane: Pane,
+    pub active_tab: usize,
 }
 
 impl App {
@@ -27,6 +28,7 @@ impl App {
             left_index: 0,
             right_index: 0,
             active_pane: Pane::Left,
+            active_tab: 0,
         }
     }
 
@@ -70,5 +72,17 @@ impl App {
 
     pub fn switch_to_right(&mut self) {
         self.active_pane = Pane::Right;
+    }
+
+    pub fn next_tab(&mut self) {
+        self.active_tab = (self.active_tab + 1) % 2;
+    }
+
+    pub fn previous_tab(&mut self) {
+        if self.active_tab == 0 {
+            self.active_tab = 1;
+        } else {
+            self.active_tab -= 1;
+        }
     }
 }

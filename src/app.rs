@@ -128,12 +128,16 @@ impl App {
             if let Event::Key(key) = event::read()? {
                 match key.code {
                     KeyCode::Char('q') => return Ok(true),
-                    KeyCode::Char('j') => self.next(),
-                    KeyCode::Char('k') => self.previous(),
-                    KeyCode::Char('h') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                    KeyCode::Char('j') | KeyCode::Down => self.next(),
+                    KeyCode::Char('k') | KeyCode::Up => self.previous(),
+                    KeyCode::Char('h') | KeyCode::Left
+                        if key.modifiers.contains(KeyModifiers::CONTROL) =>
+                    {
                         self.switch_to_left()
                     }
-                    KeyCode::Char('l') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                    KeyCode::Char('l') | KeyCode::Right
+                        if key.modifiers.contains(KeyModifiers::CONTROL) =>
+                    {
                         self.switch_to_right()
                     }
                     KeyCode::Tab => self.next_tab(),

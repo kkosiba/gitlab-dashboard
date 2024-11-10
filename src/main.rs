@@ -1,8 +1,10 @@
 mod app;
 use app::{ApiStatus, App, Pane};
 mod cli;
+mod config;
 use clap::Parser;
-use cli::{Cli, Config};
+use cli::Cli;
+use config::Config;
 use crossterm::{
     event::{self, Event, KeyCode, KeyModifiers},
     execute,

@@ -69,8 +69,7 @@ fn handle_event(app: &Arc<Mutex<App>>) -> Result<bool, Box<dyn Error>> {
 async fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::parse();
     let config = Config::new(args.config_file);
-    // TODO: Do something with config later
-    println!("Loaded config {:?}", config);
+    let tab_titles = config.core.gitlab_projects.clone();
 
     // ratatui boilerplate code
     enable_raw_mode()?;
@@ -80,7 +79,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
     terminal.clear()?;
 
-    let app = Arc::new(Mutex::new(App::new()));
+    let app = Arc::new(Mutex::new(App::new(tab_titles)));
 
     // Spawn threads to fetch data for both panes
     spawn_data_fetch_thread(Arc::clone(&app), Pane::Left, 10);

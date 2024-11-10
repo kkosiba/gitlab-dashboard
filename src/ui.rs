@@ -10,39 +10,24 @@ use ratatui::{
 pub fn draw(f: &mut Frame, app: &App) {
     let size = f.area();
 
+    let tab_spans: Vec<Span> = app.tab_titles.iter().map(Span::raw).collect();
+    let tabs = Tabs::new(tab_spans).select(app.active_tab).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("GitLab Projects"),
+    );
+
+    f.render_widget(tabs, size);
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
         .split(size);
 
-    draw_tabs(f, app, chunks[0]);
-    draw_panes(f, app, chunks[1]);
-}
-
-fn draw_tabs(f: &mut Frame, app: &App, area: Rect) {
-    let titles: Vec<_> = ["Tab 1", "Tab 2"]
-        .iter()
-        .cloned()
-        .map(|t| Line::from(Span::styled(t, Style::default().fg(Color::White))))
-        .collect();
-
-    let tabs = Tabs::new(titles)
-        .select(app.active_tab)
-        .block(Block::default().borders(Borders::ALL).title("Tabs"))
-        .highlight_style(
-            Style::default()
-                .fg(Color::Yellow)
-                .add_modifier(Modifier::BOLD),
-        );
-
-    f.render_widget(tabs, area);
-}
-
-fn draw_panes(f: &mut Frame, app: &App, area: Rect) {
     let pane_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(25), Constraint::Percentage(75)].as_ref())
-        .split(area);
+        .split(chunks[1]);
 
     render_pane(f, app, Pane::Left, pane_chunks[0], "Left Pane");
     render_pane(f, app, Pane::Right, pane_chunks[1], "Right Pane");

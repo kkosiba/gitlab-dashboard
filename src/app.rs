@@ -17,17 +17,19 @@ pub struct App {
     pub left_index: usize,
     pub right_index: usize,
     pub active_pane: Pane,
+    pub tab_titles: Vec<String>,
     pub active_tab: usize,
 }
 
 impl App {
-    pub fn new() -> Self {
+    pub fn new(tab_titles: Vec<String>) -> Self {
         App {
             api_status_left: Arc::new(Mutex::new(ApiStatus::Loading)),
             api_status_right: Arc::new(Mutex::new(ApiStatus::Loading)),
             left_index: 0,
             right_index: 0,
             active_pane: Pane::Left,
+            tab_titles,
             active_tab: 0,
         }
     }
@@ -75,7 +77,7 @@ impl App {
     }
 
     pub fn next_tab(&mut self) {
-        self.active_tab = (self.active_tab + 1) % 2;
+        self.active_tab = (self.active_tab + 1) % self.tab_titles.len();
     }
 
     pub fn previous_tab(&mut self) {

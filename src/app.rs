@@ -17,15 +17,15 @@ enum Pane {
     Right,
 }
 
-enum ApiStatus {
+enum DisplayData {
     Loading,
     Loaded(Vec<String>),
 }
 
 pub struct App {
     config: Config,
-    api_status_left: ApiStatus,
-    api_status_right: ApiStatus,
+    left_pane_data: DisplayData,
+    right_pane_data: DisplayData,
     left_index: usize,
     right_index: usize,
     active_pane: Pane,
@@ -36,11 +36,11 @@ impl App {
     pub fn new(config: Config) -> Self {
         Self {
             config,
-            api_status_left: ApiStatus::Loaded(vec![
+            left_pane_data: DisplayData::Loaded(vec![
                 String::from("Pipelines"),
                 String::from("Schedules"),
             ]),
-            api_status_right: ApiStatus::Loaded(vec![
+            right_pane_data: DisplayData::Loaded(vec![
                 String::from("Pipeline 1"),
                 String::from("Pipeline 2"),
                 String::from("Pipeline 3"),
@@ -55,14 +55,14 @@ impl App {
     fn next(&mut self) {
         match self.active_pane {
             Pane::Left => {
-                if let ApiStatus::Loaded(lines) = &self.api_status_left {
+                if let DisplayData::Loaded(lines) = &self.left_pane_data {
                     if self.left_index < lines.len() - 1 {
                         self.left_index += 1;
                     }
                 }
             }
             Pane::Right => {
-                if let ApiStatus::Loaded(lines) = &self.api_status_right {
+                if let DisplayData::Loaded(lines) = &self.right_pane_data {
                     if self.right_index < lines.len() - 1 {
                         self.right_index += 1;
                     }
@@ -220,13 +220,13 @@ impl App {
         }
 
         let (data, index) = match pane {
-            Pane::Left => (&self.api_status_left, self.left_index),
-            Pane::Right => (&self.api_status_right, self.right_index),
+            Pane::Left => (&self.left_pane_data, self.left_index),
+            Pane::Right => (&self.right_pane_data, self.right_index),
         };
 
         let styled_lines: Vec<Line> = match data {
-            ApiStatus::Loading => vec![Line::from(Span::raw("Loading..."))],
-            ApiStatus::Loaded(content) => content
+            DisplayData::Loading => vec![Line::from(Span::raw("Loading..."))],
+            DisplayData::Loaded(content) => content
                 .iter()
                 .enumerate()
                 .map(|(i, line)| {

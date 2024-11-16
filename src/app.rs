@@ -1,6 +1,6 @@
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::layout::Alignment;
-use ratatui::widgets::{Block, Borders, Paragraph, Row, Table};
+use ratatui::widgets::{Block, Borders, ListItem, Paragraph, Row, Table};
 use ratatui::{backend::Backend, Terminal};
 use ratatui::{
     layout::Constraint,
@@ -8,6 +8,7 @@ use ratatui::{
     text::{Line, Span},
     Frame,
 };
+use std::os::unix::process;
 use std::{error::Error, time::Duration};
 
 use crate::config::Config;
@@ -28,6 +29,8 @@ pub struct App {
 impl App {
     pub fn new(config: Config) -> Self {
         let state = State {
+            render_project_selector: false,
+            active_project: None,
             active_operation_index: 0,
             active_filters: vec![String::from("ALL")],
         };
@@ -76,7 +79,18 @@ impl App {
         }
     }
 
+    fn select_project(&mut self) {
+        let projects = &self.config.core.gitlab_projects;
+        // At this point we're guaranteed to have at least one GitLab project in the config file.
+        if &projects.len() > &1 {
+            self.state.render_project_selector = true;
+        }
+        self.state.active_project = Some(projects[0].to_string());
+    }
+
     pub fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<(), Box<dyn Error>> {
+        self.select_project();
+
         loop {
             terminal.draw(|f| {
                 self.draw(f);
@@ -106,62 +120,71 @@ impl App {
     fn draw(&self, f: &mut Frame) {
         let area = f.area();
 
-        match &self.pipelines_data {
-            PipelinesData::Loading => {
-                let loading_message = vec![Line::from(Span::styled(
-                    "Loading...",
-                    Style::default()
-                        .fg(Color::Yellow)
-                        .add_modifier(Modifier::BOLD),
-                ))];
-                let block = Paragraph::new(loading_message).alignment(Alignment::Center);
-                f.render_widget(block, area);
-            }
-            PipelinesData::Loaded(pipelines) => {
-                let rows = pipelines.iter().enumerate().map(|(i, pipeline)| {
-                    let style = if i == self.state.active_operation_index {
-                        Style::default().fg(Color::Black).bg(Color::White)
-                    } else {
+        if self.state.render_project_selector {
+            // Render project selector
+            unimplemented!("Implement me!")
+        } else {
+            // Render pipelines view
+            match &self.pipelines_data {
+                PipelinesData::Loading => {
+                    let loading_message = vec![Line::from(Span::styled(
+                        "Loading...",
                         Style::default()
-                    };
-                    Row::new(vec![
-                        Span::raw(pipeline.id.to_string()),
-                        Span::raw(pipeline.status.to_string()),
-                        Span::raw(pipeline.source.to_string()),
-                    ])
-                    .style(style)
-                });
+                            .fg(Color::Yellow)
+                            .add_modifier(Modifier::BOLD),
+                    ))];
+                    let block = Paragraph::new(loading_message).alignment(Alignment::Center);
+                    f.render_widget(block, area);
+                }
+                PipelinesData::Loaded(pipelines) => {
+                    let rows = pipelines.iter().enumerate().map(|(i, pipeline)| {
+                        let style = if i == self.state.active_operation_index {
+                            Style::default().fg(Color::Black).bg(Color::White)
+                        } else {
+                            Style::default()
+                        };
+                        Row::new(vec![
+                            Span::raw(pipeline.id.to_string()),
+                            Span::raw(pipeline.status.to_string()),
+                            Span::raw(pipeline.source.to_string()),
+                        ])
+                        .style(style)
+                    });
 
-                let table = Table::new(
-                    rows,
-                    [
-                        Constraint::Percentage(15),
-                        Constraint::Percentage(20),
-                        Constraint::Percentage(65),
-                    ],
-                )
-                .block(
-                    Block::default()
-                        .title("Pipelines")
-                        .title(
-                            Line::styled(
-                                format!("Filters: {}", &self.state.active_filters.join(", ")),
-                                Style::default().add_modifier(Modifier::ITALIC),
-                            )
-                            .right_aligned(),
-                        )
-                        .borders(Borders::ALL)
-                        .title_bottom(
-                            Line::from(format!(
-                                "{} of {}",
-                                self.state.active_operation_index + 1,
-                                pipelines.len()
+                    let table = Table::new(
+                        rows,
+                        [
+                            Constraint::Percentage(15),
+                            Constraint::Percentage(20),
+                            Constraint::Percentage(65),
+                        ],
+                    )
+                    .block(
+                        Block::default()
+                            .title(format!(
+                                "Pipelines for '{}'",
+                                self.state.active_project.clone().unwrap(),
                             ))
-                            .right_aligned(),
-                        ),
-                );
+                            .title(
+                                Line::styled(
+                                    format!("Filters: {}", &self.state.active_filters.join(", ")),
+                                    Style::default().add_modifier(Modifier::ITALIC),
+                                )
+                                .right_aligned(),
+                            )
+                            .borders(Borders::ALL)
+                            .title_bottom(
+                                Line::from(format!(
+                                    "{} of {}",
+                                    self.state.active_operation_index + 1,
+                                    pipelines.len()
+                                ))
+                                .right_aligned(),
+                            ),
+                    );
 
-                f.render_widget(table, area);
+                    f.render_widget(table, area);
+                }
             }
         }
     }

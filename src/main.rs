@@ -11,30 +11,37 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{backend::CrosstermBackend, Terminal};
-use std::{error::Error, io};
+use std::{
+    error::Error,
+    io::{self, Stdout},
+};
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let args = Cli::parse();
-    let config = Config::new(args.config_file);
-
-    // ratatui boilerplate code
+fn setup_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>, Box<dyn Error>> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
     terminal.clear()?;
+    Ok(terminal)
+}
 
-    let mut app = App::new(config);
-    let result = app.run(&mut terminal);
-
-    // Clean up: Leave alternate screen, disable raw mode, show cursor
+fn teardown_terminal(
+    terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+) -> Result<(), Box<dyn Error>> {
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
     terminal.show_cursor()?;
+    Ok(())
+}
 
-    if let Err(err) = result {
-        println!("Error: {:?}", err);
-    }
+fn main() -> Result<(), Box<dyn Error>> {
+    let args = Cli::parse();
+    let config = Config::new(args.config_file);
+    let mut app = App::new(&config);
+
+    let mut terminal = setup_terminal()?;
+    app.run(&mut terminal)?;
+    teardown_terminal(&mut terminal)?;
     Ok(())
 }

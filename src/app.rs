@@ -1,112 +1,62 @@
-use crossterm::event::{self, Event, KeyCode, KeyModifiers};
+use crossterm::event::{self, Event, KeyCode};
+use ratatui::layout::Alignment;
+use ratatui::widgets::{Block, Borders, Paragraph, Row, Table};
 use ratatui::{backend::Backend, Terminal};
 use ratatui::{
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::Constraint,
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Paragraph, Tabs},
     Frame,
 };
 use std::{error::Error, time::Duration};
 
 use crate::config::Config;
 
-#[derive(PartialEq)]
-enum Pane {
-    Left,
-    Right,
-}
-
-enum DisplayData {
-    Loading,
+enum PipelinesData {
+    Loading, // TODO: Use this variant when API data is being fetched
     Loaded(Vec<String>),
 }
 
 pub struct App {
     config: Config,
-    left_pane_data: DisplayData,
-    right_pane_data: DisplayData,
-    left_index: usize,
-    right_index: usize,
-    active_pane: Pane,
-    active_tab: usize,
+    pipelines_data: PipelinesData,
+    index: usize,
+    active_filters: Vec<String>, // TODO: Expand this later
 }
 
 impl App {
     pub fn new(config: Config) -> Self {
         Self {
             config,
-            left_pane_data: DisplayData::Loaded(vec![
-                String::from("Pipelines"),
-                String::from("Schedules"),
-            ]),
-            right_pane_data: DisplayData::Loaded(vec![
+            pipelines_data: PipelinesData::Loaded(vec![
                 String::from("Pipeline 1"),
                 String::from("Pipeline 2"),
                 String::from("Pipeline 3"),
             ]),
-            left_index: 0,
-            right_index: 0,
-            active_pane: Pane::Left,
-            active_tab: 0,
+            index: 0,
+            active_filters: vec![String::from("ALL")],
         }
     }
 
     fn next(&mut self) {
-        match self.active_pane {
-            Pane::Left => {
-                if let DisplayData::Loaded(lines) = &self.left_pane_data {
-                    if self.left_index < lines.len() - 1 {
-                        self.left_index += 1;
-                    }
-                }
-            }
-            Pane::Right => {
-                if let DisplayData::Loaded(lines) = &self.right_pane_data {
-                    if self.right_index < lines.len() - 1 {
-                        self.right_index += 1;
-                    }
+        match &self.pipelines_data {
+            PipelinesData::Loading => {}
+            PipelinesData::Loaded(pipelines) => {
+                if self.index < pipelines.len() - 1 {
+                    self.index += 1;
                 }
             }
         }
     }
 
     fn previous(&mut self) {
-        match self.active_pane {
-            Pane::Left => {
-                if self.left_index > 0 {
-                    self.left_index -= 1;
+        match &self.pipelines_data {
+            PipelinesData::Loading => {}
+            PipelinesData::Loaded(_) => {
+                if self.index > 0 {
+                    self.index -= 1;
                 }
             }
-            Pane::Right => {
-                if self.right_index > 0 {
-                    self.right_index -= 1;
-                }
-            }
-        }
-    }
-
-    fn switch_to_left(&mut self) {
-        self.active_pane = Pane::Left;
-    }
-
-    fn switch_to_right(&mut self) {
-        self.active_pane = Pane::Right;
-    }
-
-    fn get_projects(&self) -> &Vec<String> {
-        &self.config.core.gitlab_projects
-    }
-
-    fn next_tab(&mut self) {
-        self.active_tab = (self.active_tab + 1) % self.get_projects().len();
-    }
-
-    fn previous_tab(&mut self) {
-        if self.active_tab == 0 {
-            self.active_tab = 1;
-        } else {
-            self.active_tab -= 1;
         }
     }
 
@@ -130,18 +80,6 @@ impl App {
                     KeyCode::Char('q') => return Ok(true),
                     KeyCode::Char('j') | KeyCode::Down => self.next(),
                     KeyCode::Char('k') | KeyCode::Up => self.previous(),
-                    KeyCode::Char('h') | KeyCode::Left
-                        if key.modifiers.contains(KeyModifiers::CONTROL) =>
-                    {
-                        self.switch_to_left()
-                    }
-                    KeyCode::Char('l') | KeyCode::Right
-                        if key.modifiers.contains(KeyModifiers::CONTROL) =>
-                    {
-                        self.switch_to_right()
-                    }
-                    KeyCode::Tab => self.next_tab(),
-                    KeyCode::BackTab => self.previous_tab(), // BackTab = Shift + Tab
                     _ => {}
                 }
             }
@@ -150,100 +88,48 @@ impl App {
     }
 
     fn draw(&self, f: &mut Frame) {
-        let size = f.area();
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
-            .split(size);
-        self.render_tabs(f, chunks[0]);
-        self.render_main_content(f, chunks[1]);
-    }
+        let area = f.area();
 
-    fn render_tabs(&self, f: &mut Frame, area: Rect) {
-        let tab_spans: Vec<Span> = self.get_projects().iter().map(Span::raw).collect();
-        let tabs = Tabs::new(tab_spans)
-            .select(self.active_tab)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title("GitLab Projects"),
-            )
-            .highlight_style(
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            );
-        f.render_widget(tabs, area);
-    }
-
-    fn render_main_content(&self, f: &mut Frame, area: Rect) {
-        let pane_chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(10), Constraint::Percentage(90)].as_ref())
-            .split(area);
-        self.render_pane(f, Pane::Left, pane_chunks[0], "CI/CD", false);
-        self.render_pane(f, Pane::Right, pane_chunks[1], "Details", true);
-    }
-
-    fn render_pane(&self, f: &mut Frame, pane: Pane, area: Rect, title: &str, with_sub_tabs: bool) {
-        // If with_sub_tabs is true, create a layout with a sub-tabs area at the top
-        let (content_area, sub_tabs_area) = if with_sub_tabs {
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
-                .split(area);
-            (chunks[1], Some(chunks[0]))
-        } else {
-            (area, None)
-        };
-
-        // Render sub-tabs if present
-        if let Some(sub_tabs_area) = sub_tabs_area {
-            let sub_tab_labels = ["Passed", "Failed", "Cancelled", "Skipped"];
-            let sub_tab_spans: Vec<Span> = sub_tab_labels
-                .iter()
-                .map(|&label| Span::raw(label))
-                .collect();
-            let sub_tabs = Tabs::new(sub_tab_spans)
-                .block(
-                    Block::default()
-                        .title("Filter by status")
-                        .borders(Borders::ALL),
-                )
-                .highlight_style(
+        match &self.pipelines_data {
+            PipelinesData::Loading => {
+                let loading_message = vec![Line::from(Span::styled(
+                    "Loading...",
                     Style::default()
                         .fg(Color::Yellow)
                         .add_modifier(Modifier::BOLD),
-                );
-
-            f.render_widget(sub_tabs, sub_tabs_area);
-        }
-
-        let (data, index) = match pane {
-            Pane::Left => (&self.left_pane_data, self.left_index),
-            Pane::Right => (&self.right_pane_data, self.right_index),
-        };
-
-        let styled_lines: Vec<Line> = match data {
-            DisplayData::Loading => vec![Line::from(Span::raw("Loading..."))],
-            DisplayData::Loaded(content) => content
-                .iter()
-                .enumerate()
-                .map(|(i, line)| {
-                    let style = if i == index && self.active_pane == pane {
-                        Style::default()
-                            .fg(Color::Yellow)
-                            .add_modifier(Modifier::BOLD)
+                ))];
+                let block = Paragraph::new(loading_message).alignment(Alignment::Center);
+                f.render_widget(block, area);
+            }
+            PipelinesData::Loaded(pipelines) => {
+                let rows = pipelines.iter().enumerate().map(|(i, pipeline)| {
+                    let style = if i == self.index {
+                        Style::default().fg(Color::Black).bg(Color::White)
                     } else {
                         Style::default()
                     };
-                    Line::from(Span::styled(line.clone(), style))
-                })
-                .collect(),
-        };
+                    Row::new(vec![Span::raw(pipeline)]).style(style)
+                });
 
-        let paragraph =
-            Paragraph::new(styled_lines).block(Block::default().borders(Borders::ALL).title(title));
-        f.render_widget(paragraph, content_area);
+                let table = Table::new(rows, [Constraint::Percentage(100)]).block(
+                    Block::default()
+                        .title("Pipelines")
+                        .title(
+                            Line::styled(
+                                format!("Filters: {}", &self.active_filters.join(", ")),
+                                Style::default().add_modifier(Modifier::ITALIC),
+                            )
+                            .right_aligned(),
+                        )
+                        .borders(Borders::ALL)
+                        .title_bottom(
+                            Line::from(format!("{} of {}", self.index + 1, pipelines.len()))
+                                .right_aligned(),
+                        ),
+                );
+
+                f.render_widget(table, area);
+            }
+        }
     }
 }

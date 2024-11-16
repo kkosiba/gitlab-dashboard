@@ -11,10 +11,11 @@ use ratatui::{
 use std::{error::Error, time::Duration};
 
 use crate::config::Config;
+use crate::gitlab::{Pipeline, PipelineStatus};
 
 enum PipelinesData {
     Loading, // TODO: Use this variant when API data is being fetched
-    Loaded(Vec<String>),
+    Loaded(Vec<Pipeline>),
 }
 
 pub struct App {
@@ -29,9 +30,21 @@ impl App {
         Self {
             config,
             pipelines_data: PipelinesData::Loaded(vec![
-                String::from("Pipeline 1"),
-                String::from("Pipeline 2"),
-                String::from("Pipeline 3"),
+                Pipeline {
+                    id: 1,
+                    status: PipelineStatus::Success,
+                    source: String::from("push"),
+                },
+                Pipeline {
+                    id: 2,
+                    status: PipelineStatus::Failed,
+                    source: String::from("merge_event"),
+                },
+                Pipeline {
+                    id: 3,
+                    status: PipelineStatus::Running,
+                    source: String::from("scheduled"),
+                },
             ]),
             index: 0,
             active_filters: vec![String::from("ALL")],
@@ -108,10 +121,23 @@ impl App {
                     } else {
                         Style::default()
                     };
-                    Row::new(vec![Span::raw(pipeline)]).style(style)
+                    Row::new(vec![
+                        Span::raw(pipeline.id.to_string()),
+                        Span::raw(pipeline.status.to_string()),
+                        Span::raw(pipeline.source.to_string()),
+                    ])
+                    .style(style)
                 });
 
-                let table = Table::new(rows, [Constraint::Percentage(100)]).block(
+                let table = Table::new(
+                    rows,
+                    [
+                        Constraint::Percentage(15),
+                        Constraint::Percentage(20),
+                        Constraint::Percentage(65),
+                    ],
+                )
+                .block(
                     Block::default()
                         .title("Pipelines")
                         .title(

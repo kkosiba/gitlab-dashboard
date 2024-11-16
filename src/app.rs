@@ -1,6 +1,6 @@
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::layout::Alignment;
-use ratatui::widgets::{Block, Borders, ListItem, Paragraph, Row, Table};
+use ratatui::widgets::{Block, Borders, Paragraph, Row, Table};
 use ratatui::{backend::Backend, Terminal};
 use ratatui::{
     layout::Constraint,
@@ -8,7 +8,6 @@ use ratatui::{
     text::{Line, Span},
     Frame,
 };
-use std::os::unix::process;
 use std::{error::Error, time::Duration};
 
 use crate::config::Config;
@@ -82,7 +81,7 @@ impl App {
     fn select_project(&mut self) {
         let projects = &self.config.core.gitlab_projects;
         // At this point we're guaranteed to have at least one GitLab project in the config file.
-        if &projects.len() > &1 {
+        if projects.len() > 1 {
             self.state.render_project_selector = true;
         }
         self.state.active_project = Some(projects[0].to_string());

@@ -26,10 +26,10 @@ impl Config {
         {
             errors.push("Config 'core.gitlab_url' must be a valid URL");
         }
-        if config.core.gitlab_projects.len() == 0 {
+        if config.core.gitlab_projects.is_empty() {
             errors.push("Config 'core.gitlab_projects' needs to define at least one project");
         }
-        if errors.len() > 0 {
+        if !errors.is_empty() {
             eprintln!("Invalid config. Errors:\n{}", errors.join("\n"));
             process::exit(1);
         }

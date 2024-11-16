@@ -12,6 +12,7 @@ use std::{error::Error, time::Duration};
 
 use crate::config::Config;
 use crate::gitlab::{Pipeline, PipelineStatus};
+use crate::state::State;
 
 enum PipelinesData {
     Loading, // TODO: Use this variant when API data is being fetched
@@ -21,12 +22,15 @@ enum PipelinesData {
 pub struct App {
     config: Config,
     pipelines_data: PipelinesData,
-    index: usize,
-    active_filters: Vec<String>, // TODO: Expand this later
+    state: State,
 }
 
 impl App {
     pub fn new(config: Config) -> Self {
+        let state = State {
+            active_operation_index: 0,
+            active_filters: vec![String::from("ALL")],
+        };
         Self {
             config,
             pipelines_data: PipelinesData::Loaded(vec![
@@ -46,8 +50,7 @@ impl App {
                     source: String::from("scheduled"),
                 },
             ]),
-            index: 0,
-            active_filters: vec![String::from("ALL")],
+            state,
         }
     }
 
@@ -55,8 +58,8 @@ impl App {
         match &self.pipelines_data {
             PipelinesData::Loading => {}
             PipelinesData::Loaded(pipelines) => {
-                if self.index < pipelines.len() - 1 {
-                    self.index += 1;
+                if self.state.active_operation_index < pipelines.len() - 1 {
+                    self.state.active_operation_index += 1;
                 }
             }
         }
@@ -66,8 +69,8 @@ impl App {
         match &self.pipelines_data {
             PipelinesData::Loading => {}
             PipelinesData::Loaded(_) => {
-                if self.index > 0 {
-                    self.index -= 1;
+                if self.state.active_operation_index > 0 {
+                    self.state.active_operation_index -= 1;
                 }
             }
         }
@@ -116,7 +119,7 @@ impl App {
             }
             PipelinesData::Loaded(pipelines) => {
                 let rows = pipelines.iter().enumerate().map(|(i, pipeline)| {
-                    let style = if i == self.index {
+                    let style = if i == self.state.active_operation_index {
                         Style::default().fg(Color::Black).bg(Color::White)
                     } else {
                         Style::default()
@@ -142,15 +145,19 @@ impl App {
                         .title("Pipelines")
                         .title(
                             Line::styled(
-                                format!("Filters: {}", &self.active_filters.join(", ")),
+                                format!("Filters: {}", &self.state.active_filters.join(", ")),
                                 Style::default().add_modifier(Modifier::ITALIC),
                             )
                             .right_aligned(),
                         )
                         .borders(Borders::ALL)
                         .title_bottom(
-                            Line::from(format!("{} of {}", self.index + 1, pipelines.len()))
-                                .right_aligned(),
+                            Line::from(format!(
+                                "{} of {}",
+                                self.state.active_operation_index + 1,
+                                pipelines.len()
+                            ))
+                            .right_aligned(),
                         ),
                 );
 

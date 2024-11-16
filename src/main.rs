@@ -2,6 +2,7 @@ mod app;
 mod cli;
 mod config;
 mod gitlab;
+mod state;
 
 use app::App;
 use clap::Parser;

@@ -21,8 +21,8 @@ impl Config {
         // Validation
         let mut errors: Vec<&str> = vec![];
         // More sophisticated URL validation could be done here, but this will do for now.
-        if !config.core.gitlab_url.starts_with("http://")
-            || !config.core.gitlab_url.starts_with("https://")
+        if !(config.core.gitlab_url.starts_with("http://")
+            || config.core.gitlab_url.starts_with("https://"))
         {
             errors.push("Config 'core.gitlab_url' must be a valid URL");
         }

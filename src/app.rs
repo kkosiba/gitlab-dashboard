@@ -12,6 +12,7 @@ use std::{error::Error, time::Duration};
 
 use crate::config::Config;
 use crate::gitlab::{Pipeline, PipelineStatus};
+use crate::paginator::build_paginator;
 use crate::state::State;
 
 enum PipelinesData {
@@ -198,6 +199,7 @@ impl App {
                     .style(style)
                 });
 
+                let paginator = build_paginator(pipelines.len(), self.state.active_page);
                 let table = Table::new(
                     rows,
                     [
@@ -228,14 +230,7 @@ impl App {
                             ))
                             .right_aligned(),
                         )
-                        .title_bottom(
-                            Line::from(format!(
-                                "Page {} of {}",
-                                self.state.active_page,
-                                pipelines.len() % self.config.ui.max_page_size
-                            ))
-                            .left_aligned(),
-                        ),
+                        .title_bottom(Line::from(format!("Pages: {}", paginator)).left_aligned()),
                 );
 
                 f.render_widget(table, area);

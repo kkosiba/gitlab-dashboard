@@ -4,12 +4,18 @@ use std::{fs, process};
 #[derive(Debug, Deserialize)]
 pub struct Config {
     pub core: CoreConfig,
+    pub ui: UIConfig,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct CoreConfig {
     pub gitlab_url: String,
     pub gitlab_projects: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UIConfig {
+    pub max_page_size: usize,
 }
 
 impl Config {

@@ -3,3 +3,6 @@
 gitlab_url = "https://gitlab.example.com"
 # At least one GitLab project is required. Each project will be managed in its own tab.
 gitlab_projects = ["group1/subgroupA/project1", "group2/subgroupB/project2"]
+
+[ui]
+max_page_size = 25

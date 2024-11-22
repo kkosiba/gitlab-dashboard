@@ -3,4 +3,5 @@ pub struct State {
     pub active_project: Option<String>,
     pub active_operation_index: usize,
     pub active_filters: Vec<String>,
+    pub active_page: usize,
 }

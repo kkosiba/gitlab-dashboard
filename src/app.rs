@@ -32,6 +32,7 @@ impl App {
             active_project: None,
             active_operation_index: 0,
             active_filters: vec![],
+            active_page: 1,
         };
         Self {
             config,
@@ -226,6 +227,14 @@ impl App {
                                 pipelines.len()
                             ))
                             .right_aligned(),
+                        )
+                        .title_bottom(
+                            Line::from(format!(
+                                "Page {} of {}",
+                                self.state.active_page,
+                                pipelines.len() % self.config.ui.max_page_size
+                            ))
+                            .left_aligned(),
                         ),
                 );
 

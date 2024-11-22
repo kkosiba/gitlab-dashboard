@@ -1,44 +1,41 @@
 use serde::Deserialize;
-use std::{fs, process};
+use std::{error::Error, fs};
+use validator::Validate;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Validate, Deserialize)]
 pub struct Config {
+    #[validate(nested)]
     pub core: CoreConfig,
+    #[validate(nested)]
     pub ui: UIConfig,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Validate, Deserialize)]
 pub struct CoreConfig {
+    #[validate(url)]
     pub gitlab_url: String,
+
+    #[validate(length(min = 1))]
     pub gitlab_projects: Vec<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Validate, Deserialize)]
 pub struct UIConfig {
+    #[validate(range(min = 1))]
+    #[serde(default = "default_max_page_size")]
     pub max_page_size: usize,
 }
 
+fn default_max_page_size() -> usize {
+    25
+}
+
 impl Config {
-    pub fn new(path: String) -> Self {
+    pub fn new(path: String) -> Result<Self, Box<dyn Error>> {
         // TODO: Proper error handling comes later
         let config_content = fs::read_to_string(path).unwrap();
         let config: Self = toml::from_str(&config_content).unwrap();
-
-        // Validation
-        let mut errors: Vec<&str> = vec![];
-        // More sophisticated URL validation could be done here, but this will do for now.
-        if !(config.core.gitlab_url.starts_with("http://")
-            || config.core.gitlab_url.starts_with("https://"))
-        {
-            errors.push("Config 'core.gitlab_url' must be a valid URL");
-        }
-        if config.core.gitlab_projects.is_empty() {
-            errors.push("Config 'core.gitlab_projects' needs to define at least one project");
-        }
-        if !errors.is_empty() {
-            eprintln!("Invalid config. Errors:\n{}", errors.join("\n"));
-            process::exit(1);
-        }
-        config
+        config.validate()?;
+        Ok(config)
     }
 }

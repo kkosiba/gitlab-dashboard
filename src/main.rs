@@ -39,7 +39,7 @@ fn teardown_terminal(
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::parse();
-    let config = Config::new(args.config_file);
+    let config = Config::new(args.config_file)?;
     let mut app = App::new(config);
 
     let mut terminal = setup_terminal()?;

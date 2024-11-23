@@ -1,5 +1,5 @@
 use crossterm::event::{self, Event, KeyCode};
-use ratatui::layout::{Alignment, Direction, Layout, Rect};
+use ratatui::layout::Alignment;
 use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Row, Table};
 use ratatui::{backend::Backend, Terminal};
 use ratatui::{
@@ -12,8 +12,9 @@ use std::{error::Error, time::Duration};
 
 use crate::config::Config;
 use crate::gitlab::{Pipeline, PipelineStatus};
-use crate::paginator::build_paginator;
 use crate::state::State;
+use crate::ui::paginator::build_paginator;
+use crate::ui::ui::centered_layout;
 
 enum PipelinesData {
     Loading, // TODO: Use this variant when API data is being fetched
@@ -245,31 +246,4 @@ impl App {
             self.render_pipelines_view(f);
         }
     }
-}
-
-fn centered_layout(area: Rect) -> Rect {
-    let vertical_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Percentage(40), // Space above the widget
-                Constraint::Percentage(20), // Space for the widget
-                Constraint::Percentage(40), // Space below the widget
-            ]
-            .as_ref(),
-        )
-        .split(area);
-
-    let horizontal_chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(
-            [
-                Constraint::Percentage(40), // Space to the left of the widget
-                Constraint::Percentage(20), // Space for the widget
-                Constraint::Percentage(40), // Space to the right of the widget
-            ]
-            .as_ref(),
-        )
-        .split(vertical_chunks[1]);
-    horizontal_chunks[1]
 }

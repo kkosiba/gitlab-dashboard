@@ -2,8 +2,8 @@ mod app;
 mod cli;
 mod config;
 mod gitlab;
-mod paginator;
 mod state;
+mod ui;
 
 use app::App;
 use clap::Parser;

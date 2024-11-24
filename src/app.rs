@@ -12,6 +12,7 @@ use std::{
 };
 
 use crate::config::Config;
+use crate::gitlab::fetch_pipelines;
 use crate::{
     state::{PipelinesData, State},
     ui::ui::{render_pipelines_view, render_project_selector},
@@ -28,7 +29,16 @@ impl App {
         Self { config, state }
     }
 
-    async fn load_pipelines_data(&self) {}
+    fn load_pipelines_data(&mut self) {
+        match fetch_pipelines(
+            self.config.core.gitlab_url.clone(),
+            self.state.active_project.clone().unwrap(),
+            self.config.ui.max_page_size,
+        ) {
+            Ok(results) => self.state.pipelines_data = PipelinesData::Loaded(results),
+            Err(error) => self.state.pipelines_data = PipelinesData::Errors(error),
+        }
+    }
 
     fn setup_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>, Box<dyn Error>> {
         enable_raw_mode()?;

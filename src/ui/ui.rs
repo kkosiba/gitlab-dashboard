@@ -7,9 +7,10 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Row, Table},
     Frame,
 };
+use serde_json::Value;
 
 use crate::{
-    gitlab::Pipeline,
+    gitlab::GitlabPipeline,
     state::{PipelinesData, State},
 };
 
@@ -78,7 +79,7 @@ fn render_loading_view(f: &mut Frame) {
     f.render_widget(block, area);
 }
 
-fn render_loaded_view(f: &mut Frame, state: &State, pipelines: &[Pipeline]) {
+fn render_loaded_view(f: &mut Frame, state: &State, pipelines: &[Value]) {
     let area = f.area();
     let rows = pipelines.iter().enumerate().map(|(i, pipeline)| {
         let style = if i == state.active_operation_index {
@@ -87,9 +88,11 @@ fn render_loaded_view(f: &mut Frame, state: &State, pipelines: &[Pipeline]) {
             Style::default()
         };
         Row::new(vec![
-            Span::raw(pipeline.id.to_string()),
-            Span::raw(pipeline.status.to_string()),
-            Span::raw(pipeline.source.to_string()),
+            Span::raw(serde_json::to_string(pipeline).unwrap()),
+            // TODO: properly render using GitlabPipeline struct
+            //Span::raw(pipeline.id.to_string()),
+            //Span::raw(pipeline.status.to_string()),
+            //Span::raw(pipeline.source.to_string()),
         ])
         .style(style)
     });

@@ -1,9 +1,10 @@
 use crate::gitlab::Pipeline;
+use std::error::Error;
 
 pub enum PipelinesData {
     Loading, // TODO: Use this variant when API data is being fetched
     Loaded(Vec<Pipeline>),
-    Errors(Vec<String>), // TODO: Use this variant when errors occur during data fetching
+    Errors(Box<dyn Error>),
 }
 
 pub struct State {

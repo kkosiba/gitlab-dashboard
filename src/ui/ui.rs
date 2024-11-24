@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
@@ -64,7 +66,7 @@ pub fn render_project_selector(f: &mut Frame, state: &State, projects: &[String]
     f.render_stateful_widget(list, area, &mut list_state);
 }
 
-fn render_loading_view(f: &mut Frame, state: &State) {
+fn render_loading_view(f: &mut Frame) {
     let area = f.area();
     let loading_message = vec![Line::from(Span::styled(
         "Loading...",
@@ -129,14 +131,20 @@ fn render_loaded_view(f: &mut Frame, state: &State, pipelines: &[Pipeline]) {
     f.render_widget(table, area);
 }
 
-fn render_errors_view(f: &mut Frame, state: &State, errors: &[String]) {
-    unimplemented!("Implement me!")
+fn render_errors_view(f: &mut Frame, error: &Box<dyn Error>) {
+    let area = f.area();
+    let loading_message = vec![Line::from(Span::styled(
+        format!("ERROR: {}", error),
+        Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+    ))];
+    let block = Paragraph::new(loading_message).alignment(Alignment::Center);
+    f.render_widget(block, area);
 }
 
 pub fn render_pipelines_view(f: &mut Frame, state: &State) {
     match &state.pipelines_data {
-        PipelinesData::Loading => render_loading_view(f, state),
+        PipelinesData::Loading => render_loading_view(f),
         PipelinesData::Loaded(pipelines) => render_loaded_view(f, state, pipelines),
-        PipelinesData::Errors(errors) => render_errors_view(f, state, errors),
+        PipelinesData::Errors(error) => render_errors_view(f, error),
     }
 }

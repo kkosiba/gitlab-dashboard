@@ -1,11 +1,21 @@
 use crossterm::event::{self, Event, KeyCode};
+use crossterm::{
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
 use ratatui::Frame;
-use ratatui::{backend::Backend, Terminal};
-use std::{error::Error, time::Duration};
+use ratatui::{backend::CrosstermBackend, Terminal};
+use std::time::Duration;
+use std::{
+    error::Error,
+    io::{self, Stdout},
+};
 
 use crate::config::Config;
-use crate::state::{PipelinesData, State};
-use crate::ui::ui::{render_pipelines_view, render_project_selector};
+use crate::{
+    state::{PipelinesData, State},
+    ui::ui::{render_pipelines_view, render_project_selector},
+};
 
 pub struct App {
     config: Config,
@@ -16,6 +26,27 @@ impl App {
     pub fn new(config: Config) -> Self {
         let state = State::default();
         Self { config, state }
+    }
+
+    async fn load_pipelines_data(&self) {}
+
+    fn setup_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>, Box<dyn Error>> {
+        enable_raw_mode()?;
+        let mut stdout = io::stdout();
+        execute!(stdout, EnterAlternateScreen)?;
+        let backend = CrosstermBackend::new(stdout);
+        let mut terminal = Terminal::new(backend)?;
+        terminal.clear()?;
+        Ok(terminal)
+    }
+
+    fn teardown_terminal(
+        terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+    ) -> Result<(), Box<dyn Error>> {
+        disable_raw_mode()?;
+        execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+        terminal.show_cursor()?;
+        Ok(())
     }
 
     fn next(&mut self) {
@@ -49,8 +80,10 @@ impl App {
         self.state.active_project = Some(projects[0].to_string());
     }
 
-    pub fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<(), Box<dyn Error>> {
+    pub fn run(&mut self) -> Result<(), Box<dyn Error>> {
+        let mut terminal = Self::setup_terminal()?;
         self.select_project();
+        self.load_pipelines_data();
 
         loop {
             terminal.draw(|f| {
@@ -61,6 +94,7 @@ impl App {
                 break;
             }
         }
+        Self::teardown_terminal(&mut terminal)?;
         Ok(())
     }
 

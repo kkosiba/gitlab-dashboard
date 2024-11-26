@@ -1,16 +1,16 @@
 use std::error::Error;
 
+use gitlab::api::projects::pipelines;
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
+    layout::{Alignment, Constraint, Direction, Flex, Layout, Rect},
+    style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Row, Table},
+    widgets::{Block, Borders, List, ListItem, ListState, Padding, Paragraph, Row, Table},
     Frame,
 };
-use serde_json::Value;
 
 use crate::{
-    gitlab::GitlabPipeline,
+    gitlab::{GitlabPipeline, PipelineStatus},
     state::{PipelinesData, State},
 };
 
@@ -68,7 +68,7 @@ pub fn render_project_selector(f: &mut Frame, state: &State, projects: &[String]
 }
 
 fn render_loading_view(f: &mut Frame) {
-    let area = f.area();
+    let area = centered_layout(f.area());
     let loading_message = vec![Line::from(Span::styled(
         "Loading...",
         Style::default()
@@ -79,35 +79,65 @@ fn render_loading_view(f: &mut Frame) {
     f.render_widget(block, area);
 }
 
-fn render_loaded_view(f: &mut Frame, state: &State, pipelines: &[Value]) {
+fn render_loaded_view(f: &mut Frame, state: &State, pipelines: &[GitlabPipeline]) {
     let area = f.area();
+    let header_row = vec![
+        "ID",
+        "Status",
+        "Source",
+        "Ref",
+        "Created at",
+        "Updated at",
+        "URL",
+    ]
+    .into_iter()
+    .map(|e| Span::styled(e, Style::default().bold()))
+    .collect();
+
     let rows = pipelines.iter().enumerate().map(|(i, pipeline)| {
-        let style = if i == state.active_operation_index {
-            Style::default().fg(Color::Black).bg(Color::White)
+        let hightlight_style = if i == state.active_operation_index {
+            Style::default().fg(Color::Black).bg(Color::LightYellow)
         } else {
             Style::default()
         };
+        let status_style = match pipeline.status {
+            PipelineStatus::Failed => Style::default().red(),
+            PipelineStatus::Success => Style::default().green(),
+            PipelineStatus::Running => Style::default().italic(),
+            _ => Style::default(),
+        };
         Row::new(vec![
-            Span::raw(serde_json::to_string(pipeline).unwrap()),
-            // TODO: properly render using GitlabPipeline struct
-            //Span::raw(pipeline.id.to_string()),
-            //Span::raw(pipeline.status.to_string()),
-            //Span::raw(pipeline.source.to_string()),
+            Span::raw(pipeline.id.to_string()),
+            Span::styled(pipeline.status.to_string(), status_style),
+            Span::raw(pipeline.source.to_string()),
+            Span::raw(&pipeline.git_ref),
+            Span::raw(pipeline.created_at.format("%Y-%m-%d %H:%M:%S").to_string()),
+            Span::raw(pipeline.updated_at.format("%Y-%m-%d %H:%M:%S").to_string()),
+            // TODO: Display URL in a pop-up with details, together with other data
+            // Span::raw(&pipeline.web_url),
         ])
-        .style(style)
+        .style(hightlight_style)
     });
 
     let paginator = build_paginator(pipelines.len(), state.active_page);
     let table = Table::new(
         rows,
-        [
-            Constraint::Percentage(15),
-            Constraint::Percentage(20),
-            Constraint::Percentage(65),
+        // TODO: Display URL in a pop-up with details, together with other data
+        vec![
+            Constraint::Length(20), // ID
+            Constraint::Length(20), // status
+            Constraint::Length(30), // source
+            Constraint::Min(30),    // ref
+            Constraint::Min(20),    // created at
+            Constraint::Min(20),    // updated at
         ],
     )
+    .column_spacing(2)
+    .header(Row::from(header_row))
+    .flex(Flex::SpaceAround)
     .block(
         Block::default()
+            .padding(Padding::uniform(1))
             .title(format!(
                 "Pipelines for '{}'",
                 state.active_project.clone().unwrap(),

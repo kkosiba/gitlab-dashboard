@@ -12,9 +12,7 @@ pub struct Config {
 
 #[derive(Debug, Validate, Deserialize)]
 pub struct CoreConfig {
-    #[validate(url)]
     pub gitlab_url: String,
-
     #[validate(length(min = 1))]
     pub gitlab_projects: Vec<String>,
 }

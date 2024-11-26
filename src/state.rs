@@ -1,10 +1,10 @@
 use std::error::Error;
 
-use serde_json::Value;
+use crate::gitlab::GitlabPipeline;
 
 pub enum PipelinesData {
     Loading,
-    Loaded(Vec<Value>), // TODO: This should use GitlabPipeline
+    Loaded(Vec<GitlabPipeline>),
     Errors(Box<dyn Error>),
 }
 

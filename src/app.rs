@@ -86,7 +86,7 @@ impl App {
         self.state.active_project = Some(projects[0].to_string());
     }
 
-    pub fn run(&mut self) -> Result<()> {
+    pub async fn run(&mut self) -> Result<()> {
         let mut terminal = Self::setup_terminal()?;
         self.select_project();
         self.load_pipelines_data();

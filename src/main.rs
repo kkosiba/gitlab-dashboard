@@ -12,11 +12,12 @@ use config::Config;
 
 use color_eyre::Result;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let args = Cli::parse();
     let config = Config::new(args.config_file)?;
     let mut app = App::new(config);
 
-    app.run()?;
+    app.run().await?;
     Ok(())
 }

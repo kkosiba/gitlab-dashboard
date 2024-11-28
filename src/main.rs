@@ -9,9 +9,10 @@ use app::App;
 use clap::Parser;
 use cli::Cli;
 use config::Config;
-use std::error::Error;
 
-fn main() -> Result<(), Box<dyn Error>> {
+use color_eyre::Result;
+
+fn main() -> Result<()> {
     let args = Cli::parse();
     let config = Config::new(args.config_file)?;
     let mut app = App::new(config);

@@ -1,5 +1,6 @@
+use color_eyre::Result;
 use serde::Deserialize;
-use std::{error::Error, fs};
+use std::fs;
 use validator::Validate;
 
 #[derive(Debug, Validate, Deserialize)]
@@ -29,7 +30,7 @@ fn default_max_page_size() -> usize {
 }
 
 impl Config {
-    pub fn new(path: String) -> Result<Self, Box<dyn Error>> {
+    pub fn new(path: String) -> Result<Self> {
         // TODO: Proper error handling comes later
         let config_content = fs::read_to_string(path).unwrap();
         let config: Self = toml::from_str(&config_content).unwrap();

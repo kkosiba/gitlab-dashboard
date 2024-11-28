@@ -1,11 +1,11 @@
-use std::error::Error;
+use color_eyre::eyre::Error;
 
 use crate::gitlab::GitlabPipeline;
 
 pub enum PipelinesData {
     Loading,
     Loaded(Vec<GitlabPipeline>),
-    Errors(Box<dyn Error>),
+    Errors(Error),
 }
 
 pub struct State {

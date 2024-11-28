@@ -5,11 +5,8 @@ use crossterm::{
 };
 use ratatui::Frame;
 use ratatui::{backend::CrosstermBackend, Terminal};
+use std::io::{self, Stdout};
 use std::time::Duration;
-use std::{
-    error::Error,
-    io::{self, Stdout},
-};
 
 use crate::config::Config;
 use crate::gitlab::fetch_pipelines;
@@ -17,6 +14,7 @@ use crate::{
     state::{PipelinesData, State},
     ui::ui::{render_pipelines_view, render_project_selector},
 };
+use color_eyre::Result;
 
 pub struct App {
     config: Config,
@@ -40,7 +38,7 @@ impl App {
         }
     }
 
-    fn setup_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>, Box<dyn Error>> {
+    fn setup_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>> {
         enable_raw_mode()?;
         let mut stdout = io::stdout();
         execute!(stdout, EnterAlternateScreen)?;
@@ -50,9 +48,7 @@ impl App {
         Ok(terminal)
     }
 
-    fn teardown_terminal(
-        terminal: &mut Terminal<CrosstermBackend<Stdout>>,
-    ) -> Result<(), Box<dyn Error>> {
+    fn teardown_terminal(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<()> {
         disable_raw_mode()?;
         execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
         terminal.show_cursor()?;
@@ -90,7 +86,7 @@ impl App {
         self.state.active_project = Some(projects[0].to_string());
     }
 
-    pub fn run(&mut self) -> Result<(), Box<dyn Error>> {
+    pub fn run(&mut self) -> Result<()> {
         let mut terminal = Self::setup_terminal()?;
         self.select_project();
         self.load_pipelines_data();
@@ -108,7 +104,7 @@ impl App {
         Ok(())
     }
 
-    fn handle_event(&mut self) -> Result<bool, Box<dyn Error>> {
+    fn handle_event(&mut self) -> Result<bool> {
         // TODO: This method has grown a bit already, consider refactoring it and maybe even moving
         // event handling to a separate module
         if event::poll(Duration::from_millis(100))? {

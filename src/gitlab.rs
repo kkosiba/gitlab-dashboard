@@ -1,4 +1,5 @@
-use std::{env, error::Error};
+use color_eyre::Result;
+use std::env;
 
 use chrono::{DateTime, Utc};
 use gitlab::{
@@ -107,7 +108,7 @@ pub fn fetch_pipelines(
     gitlab_url: String,
     gitlab_project: String,
     pagination_limit: usize,
-) -> Result<Vec<GitlabPipeline>, Box<dyn Error>> {
+) -> Result<Vec<GitlabPipeline>> {
     let token = env::var("GITLAB_PERSONAL_ACCESS_TOKEN")?;
     let client = Gitlab::new(gitlab_url, token)?;
     let endpoint = Pipelines::builder().project(gitlab_project).build()?;

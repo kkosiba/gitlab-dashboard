@@ -1,6 +1,4 @@
-use std::error::Error;
-
-use gitlab::api::projects::pipelines;
+use color_eyre::eyre::Error;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Flex, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
@@ -164,7 +162,7 @@ fn render_loaded_view(f: &mut Frame, state: &State, pipelines: &[GitlabPipeline]
     f.render_widget(table, area);
 }
 
-fn render_errors_view(f: &mut Frame, error: &Box<dyn Error>) {
+fn render_errors_view(f: &mut Frame, error: &Error) {
     let area = f.area();
     let loading_message = vec![Line::from(Span::styled(
         format!("ERROR: {}", error),

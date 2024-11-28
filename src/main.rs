@@ -1,9 +1,11 @@
+mod action;
 mod app;
 mod cli;
+mod components;
 mod config;
 mod gitlab;
 mod state;
-mod ui;
+mod tui;
 
 use app::App;
 use clap::Parser;

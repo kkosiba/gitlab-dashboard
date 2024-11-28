@@ -8,8 +8,10 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{action::Action, config::Config, tui::Event};
 
-pub mod fps;
-pub mod home;
+pub mod error_component;
+pub mod loading_component;
+pub mod pipelines_viewer_component;
+pub mod project_selector_component;
 
 /// `Component` is a trait that represents a visual and interactive element of the user interface.
 ///

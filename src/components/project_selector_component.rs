@@ -5,15 +5,16 @@ use tokio::sync::mpsc::UnboundedSender;
 use super::Component;
 use crate::{action::Action, config::Config};
 
+#[derive(Default)]
 struct ProjectSelectorState {
     active_operation_index: usize,
+    projects: Vec<String>,
 }
 
 #[derive(Default)]
 pub struct ProjectSelectorComponent {
     command_tx: Option<UnboundedSender<Action>>,
     config: Config,
-    projects: Vec<String>,
     state: ProjectSelectorState,
 }
 
@@ -50,6 +51,7 @@ impl Component for ProjectSelectorComponent {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let area = centered_layout(area);
         let list_items: Vec<ListItem> = self
+            .state
             .projects
             .iter()
             .map(|i| ListItem::new(i.clone()))

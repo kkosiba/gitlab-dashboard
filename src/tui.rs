@@ -7,12 +7,9 @@ use std::{
 use color_eyre::Result;
 use crossterm::{
     cursor,
-    event::{
-        DisableMouseCapture, EnableMouseCapture, Event as CrosstermEvent, EventStream, KeyEvent,
-        KeyEventKind, MouseEvent,
-    },
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen},
+    event::{Event as CrosstermEvent, EventStream, KeyEvent, KeyEventKind, MouseEvent},
 };
+use futures::{FutureExt, StreamExt};
 use ratatui::backend::CrosstermBackend as Backend;
 use serde::{Deserialize, Serialize};
 use tokio::{
@@ -20,6 +17,7 @@ use tokio::{
     task::JoinHandle,
 };
 use tokio_util::sync::CancellationToken;
+use tracing::error;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Event {
@@ -138,9 +136,13 @@ impl Tui {
         if crossterm::terminal::is_raw_mode_enabled()? {
             self.flush()?;
             if self.mouse {
-                crossterm::execute!(stdout(), DisableMouseCapture)?;
+                crossterm::execute!(io::stdout(), crossterm::event::DisableMouseCapture)?;
             }
-            crossterm::execute!(stdout(), LeaveAlternateScreen, cursor::Show)?;
+            crossterm::execute!(
+                io::stdout(),
+                crossterm::terminal::LeaveAlternateScreen,
+                cursor::Show
+            )?;
             crossterm::terminal::disable_raw_mode()?;
         }
         Ok(())

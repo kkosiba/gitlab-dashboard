@@ -1,4 +1,4 @@
-use crossterm::event::{Event, KeyEvent};
+use crossterm::event::KeyEvent;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
@@ -6,7 +6,7 @@ use crate::action::Action;
 use crate::components::loading_component::LoadingComponent;
 use crate::components::Component;
 use crate::config::Config;
-use crate::tui::Tui;
+use crate::tui::{Event, Tui};
 use color_eyre::Result;
 
 pub struct App {

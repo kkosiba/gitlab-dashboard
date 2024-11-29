@@ -2,11 +2,20 @@ use color_eyre::Result;
 use std::env;
 
 use chrono::{DateTime, Utc};
+use color_eyre::eyre::Error;
 use gitlab::{
     api::{self, projects::pipelines::Pipelines, Pagination, Query},
     Gitlab,
 };
 use serde::Deserialize;
+
+#[derive(Default)]
+pub enum PipelinesData {
+    #[default]
+    Loading,
+    Loaded(Vec<GitlabPipeline>),
+    Errors(Error),
+}
 
 /// Pipeline status, see
 /// https://docs.gitlab.com/ee/api/pipelines.html for reference.

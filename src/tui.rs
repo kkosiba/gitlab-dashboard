@@ -1,7 +1,5 @@
-#![allow(dead_code)] // Remove this once you start using the code
-
 use std::{
-    io::{stdout, Stdout},
+    io::{self, stdout, Stdout},
     ops::{Deref, DerefMut},
     time::Duration,
 };
@@ -10,21 +8,18 @@ use color_eyre::Result;
 use crossterm::{
     cursor,
     event::{
-        DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture,
-        Event as CrosstermEvent, EventStream, KeyEvent, KeyEventKind, MouseEvent,
+        DisableMouseCapture, EnableMouseCapture, Event as CrosstermEvent, EventStream, KeyEvent,
+        KeyEventKind, MouseEvent,
     },
     terminal::{EnterAlternateScreen, LeaveAlternateScreen},
 };
-use futures::{FutureExt, StreamExt};
 use ratatui::backend::CrosstermBackend as Backend;
 use serde::{Deserialize, Serialize};
 use tokio::{
     sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
     task::JoinHandle,
-    time::interval,
 };
 use tokio_util::sync::CancellationToken;
-use tracing::error;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Event {
@@ -32,14 +27,11 @@ pub enum Event {
     Quit,
     Error,
     Closed,
-    Tick,
     Render,
     FocusGained,
     FocusLost,
-    Paste(String),
     Key(KeyEvent),
     Mouse(MouseEvent),
-    Resize(u16, u16),
 }
 
 pub struct Tui {
@@ -48,10 +40,7 @@ pub struct Tui {
     pub cancellation_token: CancellationToken,
     pub event_rx: UnboundedReceiver<Event>,
     pub event_tx: UnboundedSender<Event>,
-    pub frame_rate: f64,
-    pub tick_rate: f64,
     pub mouse: bool,
-    pub paste: bool,
 }
 
 impl Tui {
@@ -63,21 +52,8 @@ impl Tui {
             cancellation_token: CancellationToken::new(),
             event_rx,
             event_tx,
-            frame_rate: 60.0,
-            tick_rate: 4.0,
             mouse: false,
-            paste: false,
         })
-    }
-
-    pub fn tick_rate(mut self, tick_rate: f64) -> Self {
-        self.tick_rate = tick_rate;
-        self
-    }
-
-    pub fn frame_rate(mut self, frame_rate: f64) -> Self {
-        self.frame_rate = frame_rate;
-        self
     }
 
     pub fn mouse(mut self, mouse: bool) -> Self {
@@ -85,34 +61,17 @@ impl Tui {
         self
     }
 
-    pub fn paste(mut self, paste: bool) -> Self {
-        self.paste = paste;
-        self
-    }
-
     pub fn start(&mut self) {
         self.cancel(); // Cancel any existing task
         self.cancellation_token = CancellationToken::new();
-        let event_loop = Self::event_loop(
-            self.event_tx.clone(),
-            self.cancellation_token.clone(),
-            self.tick_rate,
-            self.frame_rate,
-        );
+        let event_loop = Self::event_loop(self.event_tx.clone(), self.cancellation_token.clone());
         self.task = tokio::spawn(async {
             event_loop.await;
         });
     }
 
-    async fn event_loop(
-        event_tx: UnboundedSender<Event>,
-        cancellation_token: CancellationToken,
-        tick_rate: f64,
-        frame_rate: f64,
-    ) {
+    async fn event_loop(event_tx: UnboundedSender<Event>, cancellation_token: CancellationToken) {
         let mut event_stream = EventStream::new();
-        let mut tick_interval = interval(Duration::from_secs_f64(1.0 / tick_rate));
-        let mut render_interval = interval(Duration::from_secs_f64(1.0 / frame_rate));
 
         // if this fails, then it's likely a bug in the calling code
         event_tx
@@ -123,16 +82,12 @@ impl Tui {
                 _ = cancellation_token.cancelled() => {
                     break;
                 }
-                _ = tick_interval.tick() => Event::Tick,
-                _ = render_interval.tick() => Event::Render,
                 crossterm_event = event_stream.next().fuse() => match crossterm_event {
                     Some(Ok(event)) => match event {
                         CrosstermEvent::Key(key) if key.kind == KeyEventKind::Press => Event::Key(key),
                         CrosstermEvent::Mouse(mouse) => Event::Mouse(mouse),
-                        CrosstermEvent::Resize(x, y) => Event::Resize(x, y),
                         CrosstermEvent::FocusLost => Event::FocusLost,
                         CrosstermEvent::FocusGained => Event::FocusGained,
-                        CrosstermEvent::Paste(s) => Event::Paste(s),
                         _ => continue, // ignore other events
                     }
                     Some(Err(_)) => Event::Error,
@@ -166,12 +121,13 @@ impl Tui {
 
     pub fn enter(&mut self) -> Result<()> {
         crossterm::terminal::enable_raw_mode()?;
-        crossterm::execute!(stdout(), EnterAlternateScreen, cursor::Hide)?;
+        crossterm::execute!(
+            io::stdout(),
+            crossterm::terminal::EnterAlternateScreen,
+            cursor::Hide
+        )?;
         if self.mouse {
-            crossterm::execute!(stdout(), EnableMouseCapture)?;
-        }
-        if self.paste {
-            crossterm::execute!(stdout(), EnableBracketedPaste)?;
+            crossterm::execute!(io::stdout(), crossterm::event::EnableMouseCapture)?;
         }
         self.start();
         Ok(())
@@ -181,9 +137,6 @@ impl Tui {
         self.stop()?;
         if crossterm::terminal::is_raw_mode_enabled()? {
             self.flush()?;
-            if self.paste {
-                crossterm::execute!(stdout(), DisableBracketedPaste)?;
-            }
             if self.mouse {
                 crossterm::execute!(stdout(), DisableMouseCapture)?;
             }
@@ -195,18 +148,6 @@ impl Tui {
 
     pub fn cancel(&self) {
         self.cancellation_token.cancel();
-    }
-
-    pub fn suspend(&mut self) -> Result<()> {
-        self.exit()?;
-        #[cfg(not(windows))]
-        signal_hook::low_level::raise(signal_hook::consts::signal::SIGTSTP)?;
-        Ok(())
-    }
-
-    pub fn resume(&mut self) -> Result<()> {
-        self.enter()?;
-        Ok(())
     }
 
     pub async fn next_event(&mut self) -> Option<Event> {

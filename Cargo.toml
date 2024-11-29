@@ -13,7 +13,7 @@ gitlab = "0.1705.0"
 ratatui = "0.29.0"
 serde = { version = "1.0.214", features = ["derive"] }
 serde_json = "1.0.133"
-strum = "0.26.3"
+strum = { version = "0.26.3", features = ["derive"] }
 tokio = { version = "1.41.1", features = ["full"] }
 tokio-util = "0.7.12"
 toml = "0.8.19"

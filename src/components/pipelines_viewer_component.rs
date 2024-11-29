@@ -2,6 +2,7 @@ use color_eyre::Result;
 use layout::Flex;
 use ratatui::{prelude::*, widgets::*};
 use std::cmp::{max, min};
+use std::string::ToString;
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::Component;

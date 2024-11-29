@@ -1,4 +1,4 @@
-use color_eyre::Result;
+use color_eyre::{eyre::Error, Result};
 use ratatui::{prelude::*, widgets::*};
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -8,7 +8,12 @@ use crate::{action::Action, config::Config};
 #[derive(Default)]
 pub struct ErrorComponent {
     command_tx: Option<UnboundedSender<Action>>,
-    config: Config,
+    state: ErrorState,
+}
+
+#[derive(Default)]
+pub struct ErrorState {
+    pub error_details: Option<Error>,
 }
 
 impl ErrorComponent {
@@ -24,7 +29,7 @@ impl Component for ErrorComponent {
     }
 
     fn register_config_handler(&mut self, config: Config) -> Result<()> {
-        self.config = config;
+        let _ = config; // config is not used by ErrorComponent
         Ok(())
     }
 
@@ -42,12 +47,17 @@ impl Component for ErrorComponent {
     }
 
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        let loading_message = vec![Line::from(Span::styled(
-            format!("ERROR: {}", error),
-            Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
-        ))];
-        let block = Paragraph::new(loading_message).alignment(Alignment::Center);
-        frame.render_widget(block, area);
+        match &self.state.error_details {
+            Some(error_details) => {
+                let loading_message = vec![Line::from(Span::styled(
+                    format!("ERROR: {}", error_details),
+                    Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+                ))];
+                let block = Paragraph::new(loading_message).alignment(Alignment::Center);
+                frame.render_widget(block, area);
+            }
+            None => {}
+        }
         Ok(())
     }
 }

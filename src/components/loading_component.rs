@@ -2,13 +2,12 @@ use color_eyre::Result;
 use ratatui::{prelude::*, widgets::*};
 use tokio::sync::mpsc::UnboundedSender;
 
-use super::Component;
+use super::{utils::centered_layout, Component};
 use crate::{action::Action, config::Config};
 
 #[derive(Default)]
 pub struct LoadingComponent {
     command_tx: Option<UnboundedSender<Action>>,
-    config: Config,
 }
 
 impl LoadingComponent {
@@ -24,7 +23,7 @@ impl Component for LoadingComponent {
     }
 
     fn register_config_handler(&mut self, config: Config) -> Result<()> {
-        self.config = config;
+        let _ = config;
         Ok(())
     }
 

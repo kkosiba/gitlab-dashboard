@@ -2,7 +2,7 @@ use color_eyre::Result;
 use ratatui::{prelude::*, widgets::*};
 use tokio::sync::mpsc::UnboundedSender;
 
-use super::Component;
+use super::{utils::centered_layout, Component};
 use crate::{action::Action, config::Config};
 
 #[derive(Default)]
@@ -77,31 +77,4 @@ impl Component for ProjectSelectorComponent {
         frame.render_stateful_widget(list, area, &mut list_state);
         Ok(())
     }
-}
-
-fn centered_layout(area: Rect) -> Rect {
-    let vertical_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Percentage(40), // Space above the widget
-                Constraint::Percentage(20), // Space for the widget
-                Constraint::Percentage(40), // Space below the widget
-            ]
-            .as_ref(),
-        )
-        .split(area);
-
-    let horizontal_chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(
-            [
-                Constraint::Percentage(40), // Space to the left of the widget
-                Constraint::Percentage(20), // Space for the widget
-                Constraint::Percentage(40), // Space to the right of the widget
-            ]
-            .as_ref(),
-        )
-        .split(vertical_chunks[1]);
-    horizontal_chunks[1]
 }

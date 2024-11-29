@@ -2,7 +2,9 @@ use color_eyre::eyre::Error;
 
 use crate::gitlab::GitlabPipeline;
 
+#[derive(Default)]
 pub enum PipelinesData {
+    #[default]
     Loading,
     Loaded(Vec<GitlabPipeline>),
     Errors(Error),

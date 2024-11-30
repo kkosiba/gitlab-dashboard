@@ -12,3 +12,4 @@ gitlab_projects = ["group1/subgroupA/project1", "group2/subgroupB/project2"]
 "<q>" = "Quit"
 "<j>" = "Next"
 "<k>" = "Previous"
+"<ENTER>" = "Enter"

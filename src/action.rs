@@ -6,6 +6,7 @@ pub enum Action {
     Tick,
     Next,
     Previous,
+    Enter,
     Render,
     Quit,
     Error(String),

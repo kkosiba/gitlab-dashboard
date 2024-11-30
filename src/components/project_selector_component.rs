@@ -45,6 +45,11 @@ impl ProjectSelectorComponent {
             self.state.active_operation_index -= 1;
         }
     }
+
+    fn confirm(&mut self) {
+        let projects = &self.config.core.gitlab_projects;
+        self.state.active_project = Some(projects[self.state.active_operation_index].clone());
+    }
 }
 
 impl Component for ProjectSelectorComponent {
@@ -62,6 +67,7 @@ impl Component for ProjectSelectorComponent {
         match action {
             Action::Next => self.next(),
             Action::Previous => self.previous(),
+            Action::Enter => self.confirm(),
             Action::Tick => {
                 // add any logic here that should run on every tick
             }

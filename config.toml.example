@@ -7,3 +7,6 @@ gitlab_projects = ["group1/subgroupA/project1", "group2/subgroupB/project2"]
 [ui]
 # Maximum number of pipelines to display on a single page (default: 25).
 # max_page_size = 25
+
+[keybindings.Home]
+"<q>" = "Quit"

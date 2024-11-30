@@ -43,6 +43,28 @@ impl PipelinesViewer {
             Err(error) => self.state.pipelines_data = PipelinesData::Errors(error),
         }
     }
+
+    fn next(&mut self) {
+        match &self.state.pipelines_data {
+            PipelinesData::Loaded(pipelines) => {
+                if self.state.active_operation_index < pipelines.len() - 1 {
+                    self.state.active_operation_index += 1;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn previous(&mut self) {
+        match &self.state.pipelines_data {
+            PipelinesData::Loaded(_) => {
+                if self.state.active_operation_index > 0 {
+                    self.state.active_operation_index -= 1;
+                }
+            }
+            _ => {}
+        }
+    }
 }
 
 impl Component for PipelinesViewer {

@@ -39,29 +39,6 @@ impl App {
         })
     }
 
-    // TODO: to be carried over to the new style
-    //fn next(&mut self) {
-    //    match &self.state.pipelines_data {
-    //        PipelinesData::Loading | PipelinesData::Errors(_) => {}
-    //        PipelinesData::Loaded(pipelines) => {
-    //            if self.state.active_operation_index < pipelines.len() - 1 {
-    //                self.state.active_operation_index += 1;
-    //            }
-    //        }
-    //    }
-    //}
-    //
-    //fn previous(&mut self) {
-    //    match &self.state.pipelines_data {
-    //        PipelinesData::Loading | PipelinesData::Errors(_) => {}
-    //        PipelinesData::Loaded(_) => {
-    //            if self.state.active_operation_index > 0 {
-    //                self.state.active_operation_index -= 1;
-    //            }
-    //        }
-    //    }
-    //}
-
     pub async fn run(&mut self) -> Result<()> {
         let mut tui = Tui::new()?;
         // .mouse(true) // uncomment this line to enable mouse support

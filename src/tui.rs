@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 use tokio::{
     sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
     task::JoinHandle,
+    time::interval,
 };
 use tokio_util::sync::CancellationToken;
 use tracing::error;
@@ -25,6 +26,7 @@ pub enum Event {
     Quit,
     Error,
     Closed,
+    Tick,
     Render,
     FocusGained,
     FocusLost,
@@ -70,6 +72,8 @@ impl Tui {
 
     async fn event_loop(event_tx: UnboundedSender<Event>, cancellation_token: CancellationToken) {
         let mut event_stream = EventStream::new();
+        let mut tick_interval = interval(Duration::from_secs_f64(1.0 / 4.0));
+        let mut render_interval = interval(Duration::from_secs_f64(1.0 / 60.0));
 
         // if this fails, then it's likely a bug in the calling code
         event_tx
@@ -80,6 +84,8 @@ impl Tui {
                 _ = cancellation_token.cancelled() => {
                     break;
                 }
+                _ = tick_interval.tick() => Event::Tick,
+                _ = render_interval.tick() => Event::Render,
                 crossterm_event = event_stream.next().fuse() => match crossterm_event {
                     Some(Ok(event)) => match event {
                         CrosstermEvent::Key(key) if key.kind == KeyEventKind::Press => Event::Key(key),

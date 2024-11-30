@@ -32,6 +32,19 @@ impl ProjectSelectorComponent {
         }
         self.state.active_project = Some(projects[0].to_string());
     }
+
+    fn next(&mut self) {
+        let projects = &self.config.core.gitlab_projects;
+        if self.state.active_operation_index < projects.len() - 1 {
+            self.state.active_operation_index += 1;
+        }
+    }
+
+    fn previous(&mut self) {
+        if self.state.active_operation_index > 0 {
+            self.state.active_operation_index -= 1;
+        }
+    }
 }
 
 impl Component for ProjectSelectorComponent {
@@ -47,6 +60,8 @@ impl Component for ProjectSelectorComponent {
 
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
+            Action::Next => self.next(),
+            Action::Previous => self.previous(),
             Action::Tick => {
                 // add any logic here that should run on every tick
             }

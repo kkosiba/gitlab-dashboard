@@ -10,3 +10,5 @@ gitlab_projects = ["group1/subgroupA/project1", "group2/subgroupB/project2"]
 
 [keybindings.Home]
 "<q>" = "Quit"
+"<j>" = "Next"
+"<k>" = "Previous"

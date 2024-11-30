@@ -4,6 +4,8 @@ use strum::Display;
 #[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
 pub enum Action {
     Tick,
+    Next,
+    Previous,
     Render,
     Quit,
     Error(String),

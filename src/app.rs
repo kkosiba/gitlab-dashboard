@@ -67,9 +67,6 @@ impl App {
         // .mouse(true) // uncomment this line to enable mouse support
         tui.enter()?;
 
-        // TODO: restore this later
-        //self.select_project();
-        //self.load_pipelines_data();
         for component in self.components.iter_mut() {
             component.register_action_handler(self.action_tx.clone())?;
         }
@@ -80,7 +77,6 @@ impl App {
             component.init(tui.size()?)?;
         }
 
-        let action_tx = self.action_tx.clone();
         loop {
             self.handle_events(&mut tui).await?;
             self.handle_actions(&mut tui)?;

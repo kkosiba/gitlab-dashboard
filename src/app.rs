@@ -4,6 +4,7 @@ use tokio::sync::mpsc;
 
 use crate::action::Action;
 use crate::components::loading_component::LoadingComponent;
+use crate::components::project_selector_component::ProjectSelectorComponent;
 use crate::components::Component;
 use crate::config::Config;
 use crate::tui::{Event, Tui};
@@ -30,7 +31,7 @@ impl App {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         Ok(Self {
             config,
-            components: vec![Box::new(LoadingComponent::new())],
+            components: vec![Box::new(ProjectSelectorComponent::new())],
             should_quit: false,
             mode: Mode::Home,
             last_tick_key_events: Vec::new(),

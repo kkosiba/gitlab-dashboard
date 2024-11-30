@@ -112,6 +112,18 @@ impl App {
     fn handle_actions(&mut self, tui: &mut Tui) -> Result<()> {
         while let Ok(action) = self.action_rx.try_recv() {
             match action {
+                // TODO: Find a way to update App.components through component action. The code
+                // below doesn't work.
+                //Action::ReplaceComponents(new_components) => {
+                //    self.components = new_components; // Replace the components
+                //
+                //    // Initialize the new components
+                //    for component in self.components.iter_mut() {
+                //        component.register_action_handler(self.action_tx.clone())?;
+                //        component.register_config_handler(self.config.clone())?;
+                //        component.init(tui.size()?)?;
+                //    }
+                //}
                 Action::Tick => {
                     self.last_tick_key_events.drain(..);
                 }

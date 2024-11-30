@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
 use crate::action::Action;
-use crate::components::loading_component::LoadingComponent;
 use crate::components::project_selector_component::ProjectSelectorComponent;
 use crate::components::Component;
 use crate::config::Config;
@@ -128,59 +127,6 @@ impl App {
         }
         Ok(())
     }
-
-    // TODO: migrate this to new style
-    //fn handle_event(&mut self) -> Result<bool> {
-    //    // TODO: This method has grown a bit already, consider refactoring it and maybe even moving
-    //    // event handling to a separate module
-    //    if event::poll(Duration::from_millis(100))? {
-    //        if let Event::Key(key) = event::read()? {
-    //            if self.state.render_project_selector {
-    //                match key.code {
-    //                    KeyCode::Char('q') => return Ok(true),
-    //                    KeyCode::Char('j') | KeyCode::Down => {
-    //                        let projects = &self.config.core.gitlab_projects;
-    //                        if self.state.active_operation_index < projects.len() - 1 {
-    //                            self.state.active_operation_index += 1;
-    //                        }
-    //                    }
-    //                    KeyCode::Char('k') | KeyCode::Up => {
-    //                        if self.state.active_operation_index > 0 {
-    //                            self.state.active_operation_index -= 1;
-    //                        }
-    //                    }
-    //                    KeyCode::Enter => {
-    //                        let projects = &self.config.core.gitlab_projects;
-    //                        self.state.active_project =
-    //                            Some(projects[self.state.active_operation_index].clone());
-    //                        self.state.render_project_selector = false;
-    //                        // Reset index for pipelines view
-    //                        self.state.active_operation_index = 0;
-    //                    }
-    //                    _ => {}
-    //                }
-    //            } else {
-    //                match key.code {
-    //                    KeyCode::Char('q') => return Ok(true),
-    //                    KeyCode::Char('j') | KeyCode::Down => self.next(),
-    //                    KeyCode::Char('k') | KeyCode::Up => self.previous(),
-    //                    _ => {}
-    //                }
-    //            }
-    //        }
-    //    }
-    //    Ok(false)
-    //}
-
-    // TODO: this is now render method below, need to move functionality across
-    //fn draw(&self, f: &mut Frame) {
-    //    if self.state.render_project_selector {
-    //        let projects = &self.config.core.gitlab_projects;
-    //        render_project_selector(f, &self.state, projects);
-    //    } else {
-    //        render_pipelines_view(f, &self.state);
-    //    }
-    //}
 
     fn render(&mut self, tui: &mut Tui) -> Result<()> {
         tui.draw(|frame| {

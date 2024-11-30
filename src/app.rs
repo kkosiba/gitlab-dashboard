@@ -61,15 +61,6 @@ impl App {
     //        }
     //    }
     //}
-    //
-    //fn select_project(&mut self) {
-    //    let projects = &self.config.core.gitlab_projects;
-    //    // At this point we're guaranteed to have at least one GitLab project in the config file.
-    //    if projects.len() > 1 {
-    //        self.state.render_project_selector = true;
-    //    }
-    //    self.state.active_project = Some(projects[0].to_string());
-    //}
 
     pub async fn run(&mut self) -> Result<()> {
         let mut tui = Tui::new()?;

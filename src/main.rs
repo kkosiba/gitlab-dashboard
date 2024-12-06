@@ -4,6 +4,7 @@ mod cli;
 mod components;
 mod config;
 mod gitlab;
+mod state;
 mod tui;
 
 use app::App;

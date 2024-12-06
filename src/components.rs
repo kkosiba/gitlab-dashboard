@@ -1,14 +1,16 @@
 use color_eyre::Result;
 use crossterm::event::{KeyEvent, MouseEvent};
 use ratatui::{
-    layout::{Rect, Size},
+    layout::{Constraint, Rect, Size},
     Frame,
 };
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::{action::Action, config::Config, tui::Event};
+use crate::{action::Action, config::Config, state::State, tui::Event};
 
 pub mod error_component;
+pub mod footer_component;
+pub mod header_component;
 pub mod loading_component;
 pub mod pipelines_viewer_component;
 pub mod project_selector_component;
@@ -54,8 +56,7 @@ pub trait Component {
     /// # Returns
     ///
     /// * `Result<()>` - An Ok result or an error.
-    fn init(&mut self, area: Size) -> Result<()> {
-        let _ = area; // to appease clippy
+    fn init(&mut self, state: &State) -> Result<()> {
         Ok(())
     }
     /// Handle incoming events and produce actions if necessary.
@@ -67,10 +68,10 @@ pub trait Component {
     /// # Returns
     ///
     /// * `Result<Option<Action>>` - An action to be processed or none.
-    fn handle_events(&mut self, event: Option<Event>) -> Result<Option<Action>> {
+    fn handle_events(&mut self, event: Option<Event>, state: &mut State) -> Result<Option<Action>> {
         let action = match event {
-            Some(Event::Key(key_event)) => self.handle_key_event(key_event)?,
-            Some(Event::Mouse(mouse_event)) => self.handle_mouse_event(mouse_event)?,
+            Some(Event::Key(key_event)) => self.handle_key_event(key_event, state)?,
+            Some(Event::Mouse(mouse_event)) => self.handle_mouse_event(mouse_event, state)?,
             _ => None,
         };
         Ok(action)
@@ -84,7 +85,7 @@ pub trait Component {
     /// # Returns
     ///
     /// * `Result<Option<Action>>` - An action to be processed or none.
-    fn handle_key_event(&mut self, key: KeyEvent) -> Result<Option<Action>> {
+    fn handle_key_event(&mut self, key: KeyEvent, state: &mut State) -> Result<Option<Action>> {
         let _ = key; // to appease clippy
         Ok(None)
     }
@@ -97,7 +98,11 @@ pub trait Component {
     /// # Returns
     ///
     /// * `Result<Option<Action>>` - An action to be processed or none.
-    fn handle_mouse_event(&mut self, mouse: MouseEvent) -> Result<Option<Action>> {
+    fn handle_mouse_event(
+        &mut self,
+        mouse: MouseEvent,
+        state: &mut State,
+    ) -> Result<Option<Action>> {
         let _ = mouse; // to appease clippy
         Ok(None)
     }
@@ -110,10 +115,12 @@ pub trait Component {
     /// # Returns
     ///
     /// * `Result<Option<Action>>` - An action to be processed or none.
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    fn update(&mut self, action: Action, state: &mut State) -> Result<Option<Action>> {
         let _ = action; // to appease clippy
         Ok(None)
     }
+    /// Set height constraint on the component.
+    fn height_constraint(&self) -> Constraint;
     /// Render the component on the screen. (REQUIRED)
     ///
     /// # Arguments
@@ -124,5 +131,5 @@ pub trait Component {
     /// # Returns
     ///
     /// * `Result<()>` - An Ok result or an error.
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()>;
+    fn draw(&mut self, frame: &mut Frame, area: Rect, state: &State) -> Result<()>;
 }

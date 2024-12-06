@@ -3,20 +3,24 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
 use crate::action::Action;
+use crate::components::header_component::HeaderComponent;
 use crate::components::project_selector_component::ProjectSelectorComponent;
 use crate::components::Component;
 use crate::config::Config;
+use crate::state::State;
 use crate::tui::{Event, Tui};
 use color_eyre::Result;
 
 pub struct App {
     config: Config,
+    header: HeaderComponent,
     components: Vec<Box<dyn Component>>,
     should_quit: bool,
     mode: Mode,
     last_tick_key_events: Vec<KeyEvent>,
     action_tx: mpsc::UnboundedSender<Action>,
     action_rx: mpsc::UnboundedReceiver<Action>,
+    state: State,
 }
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -28,14 +32,23 @@ pub enum Mode {
 impl App {
     pub fn new(config: Config) -> Result<Self> {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
+        let state = State::default();
         Ok(Self {
             config,
             components: vec![Box::new(ProjectSelectorComponent::new())],
+            header: HeaderComponent::new(),
+            // Pre-define all components to use
+            components: vec![
+                Box::new(ProjectSelectorComponent::new()),
+                Box::new(LoadingComponent::new()),
+                Box::new(PipelinesViewerComponent::new()),
+            ],
             should_quit: false,
             mode: Mode::Home,
             last_tick_key_events: Vec::new(),
             action_tx,
             action_rx,
+            state,
         })
     }
 
@@ -54,6 +67,7 @@ impl App {
             component.init(tui.size()?)?;
         }
 
+        self.header.init(&self.state)?;
         loop {
             self.handle_events(&mut tui).await?;
             self.handle_actions(&mut tui)?;

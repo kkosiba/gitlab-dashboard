@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
 use crate::action::Action;
+use crate::components::footer_component::FooterComponent;
 use crate::components::header_component::HeaderComponent;
 use crate::components::project_selector_component::ProjectSelectorComponent;
 use crate::components::Component;
@@ -14,6 +15,7 @@ use color_eyre::Result;
 pub struct App {
     config: Config,
     header: HeaderComponent,
+    footer: FooterComponent,
     components: Vec<Box<dyn Component>>,
     should_quit: bool,
     mode: Mode,
@@ -35,8 +37,8 @@ impl App {
         let state = State::default();
         Ok(Self {
             config,
-            components: vec![Box::new(ProjectSelectorComponent::new())],
             header: HeaderComponent::new(),
+            footer: FooterComponent::new(),
             // Pre-define all components to use
             components: vec![
                 Box::new(ProjectSelectorComponent::new()),
@@ -68,6 +70,8 @@ impl App {
         }
 
         self.header.init(&self.state)?;
+        self.footer.init(&self.state)?;
+
         loop {
             self.handle_events(&mut tui).await?;
             self.handle_actions(&mut tui)?;

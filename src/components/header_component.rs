@@ -3,7 +3,10 @@ use ratatui::prelude::*;
 
 use crate::state::State;
 
-use super::Component;
+use super::{
+    utils::{prepare_layout, Element},
+    Component,
+};
 
 #[derive(Default)]
 pub struct HeaderComponent {}
@@ -20,6 +23,7 @@ impl Component for HeaderComponent {
     }
 
     fn draw(&mut self, frame: &mut Frame, area: Rect, state: &State) -> Result<()> {
+        let area = prepare_layout(area, Element::Header);
         // Split the area into two horizontal chunks
         let chunks = Layout::default()
             .direction(Direction::Horizontal)
@@ -35,10 +39,14 @@ impl Component for HeaderComponent {
             chunks[0],
         );
 
+        let project_name = match &state.active_gitlab_project {
+            Some(name) => name,
+            None => "<None>",
+        };
         // Render the right-aligned text
         frame.render_widget(
             Line::from(vec![Span::styled(
-                &state.active_gitlab_project,
+                project_name,
                 Style::default().fg(Color::LightRed),
             )])
             .right_aligned(),

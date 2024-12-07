@@ -3,7 +3,10 @@ use ratatui::prelude::*;
 
 use crate::state::State;
 
-use super::Component;
+use super::{
+    utils::{prepare_layout, Element},
+    Component,
+};
 
 #[derive(Default)]
 pub struct FooterComponent {}
@@ -19,7 +22,8 @@ impl Component for FooterComponent {
         Constraint::Max(1)
     }
 
-    fn draw(&mut self, frame: &mut Frame<'_>, area: Rect, state: &State) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame<'_>, area: Rect, _state: &State) -> Result<()> {
+        let area = prepare_layout(area, Element::Footer);
         frame.render_widget(
             Line::from(vec![
                 Span::styled("[ ", Style::default().fg(Color::White)),

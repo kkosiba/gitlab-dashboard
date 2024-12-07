@@ -49,24 +49,18 @@ impl PipelinesViewerComponent {
     }
 
     fn next(&mut self) {
-        match &self.pipelines_data {
-            PipelinesData::Loaded(pipelines) => {
-                if self.active_operation_index < pipelines.len() - 1 {
-                    self.active_operation_index += 1;
-                }
+        if let PipelinesData::Loaded(pipelines) = &self.pipelines_data {
+            if self.active_operation_index < pipelines.len() - 1 {
+                self.active_operation_index += 1;
             }
-            _ => {}
         }
     }
 
     fn previous(&mut self) {
-        match &self.pipelines_data {
-            PipelinesData::Loaded(_) => {
-                if self.active_operation_index > 0 {
-                    self.active_operation_index -= 1;
-                }
+        if let PipelinesData::Loaded(_) = &self.pipelines_data {
+            if self.active_operation_index > 0 {
+                self.active_operation_index -= 1;
             }
-            _ => {}
         }
     }
 }
@@ -163,7 +157,7 @@ impl Component for PipelinesViewerComponent {
                     ],
                 )
                 .column_spacing(2)
-                .header(Row::from(header_row))
+                .header(header_row)
                 .flex(Flex::SpaceAround)
                 .block(
                     Block::default()

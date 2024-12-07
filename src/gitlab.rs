@@ -1,6 +1,5 @@
 use color_eyre::Result;
 use std::env;
-use strum;
 
 use chrono::{DateTime, Utc};
 use color_eyre::eyre::Error;

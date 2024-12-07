@@ -18,10 +18,6 @@ impl HeaderComponent {
 }
 
 impl Component for HeaderComponent {
-    fn height_constraint(&self) -> Constraint {
-        Constraint::Max(1)
-    }
-
     fn draw(&mut self, frame: &mut Frame, area: Rect, state: &State) -> Result<()> {
         let area = prepare_layout(area, Element::Header);
         // Split the area into two horizontal chunks

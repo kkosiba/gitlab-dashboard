@@ -18,10 +18,6 @@ impl FooterComponent {
 }
 
 impl Component for FooterComponent {
-    fn height_constraint(&self) -> Constraint {
-        Constraint::Max(1)
-    }
-
     fn draw(&mut self, frame: &mut Frame<'_>, area: Rect, _state: &State) -> Result<()> {
         let area = prepare_layout(area, Element::Footer);
         frame.render_widget(

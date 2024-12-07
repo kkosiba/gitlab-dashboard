@@ -40,10 +40,6 @@ impl ProjectSelectorComponent {
 }
 
 impl Component for ProjectSelectorComponent {
-    fn height_constraint(&self) -> Constraint {
-        Constraint::Fill(3)
-    }
-
     fn register_action_handler(&mut self, tx: UnboundedSender<Action>) -> Result<()> {
         self.command_tx = Some(tx);
         Ok(())

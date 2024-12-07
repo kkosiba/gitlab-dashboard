@@ -119,8 +119,6 @@ pub trait Component {
         let _ = action; // to appease clippy
         Ok(None)
     }
-    /// Set height constraint on the component.
-    fn height_constraint(&self) -> Constraint;
     /// Render the component on the screen. (REQUIRED)
     ///
     /// # Arguments

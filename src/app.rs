@@ -14,8 +14,6 @@ use color_eyre::Result;
 
 pub struct App {
     config: Config,
-    header: HeaderComponent,
-    footer: FooterComponent,
     components: Vec<Box<dyn Component>>,
     should_quit: bool,
     mode: Mode,
@@ -37,13 +35,13 @@ impl App {
         let state = State::default();
         Ok(Self {
             config,
-            header: HeaderComponent::new(),
-            footer: FooterComponent::new(),
             // Pre-define all components to use
             components: vec![
+                Box::new(HeaderComponent::new()),
                 Box::new(ProjectSelectorComponent::new()),
-                Box::new(LoadingComponent::new()),
-                Box::new(PipelinesViewerComponent::new()),
+                //Box::new(LoadingComponent::new()),
+                //Box::new(PipelinesViewerComponent::new()),
+                Box::new(FooterComponent::new()),
             ],
             should_quit: false,
             mode: Mode::Home,
@@ -66,11 +64,8 @@ impl App {
             component.register_config_handler(self.config.clone())?;
         }
         for component in self.components.iter_mut() {
-            component.init(tui.size()?)?;
+            component.init(&self.state)?;
         }
-
-        self.header.init(&self.state)?;
-        self.footer.init(&self.state)?;
 
         loop {
             self.handle_events(&mut tui).await?;
@@ -97,7 +92,7 @@ impl App {
             _ => {}
         }
         for component in self.components.iter_mut() {
-            if let Some(action) = component.handle_events(Some(event.clone()))? {
+            if let Some(action) = component.handle_events(Some(event.clone()), &mut self.state)? {
                 action_tx.send(action)?;
             }
         }
@@ -150,7 +145,7 @@ impl App {
                 _ => {}
             }
             for component in self.components.iter_mut() {
-                if let Some(action) = component.update(action.clone())? {
+                if let Some(action) = component.update(action.clone(), &mut self.state)? {
                     self.action_tx.send(action)?
                 };
             }
@@ -161,7 +156,7 @@ impl App {
     fn render(&mut self, tui: &mut Tui) -> Result<()> {
         tui.draw(|frame| {
             for component in self.components.iter_mut() {
-                if let Err(err) = component.draw(frame, frame.area()) {
+                if let Err(err) = component.draw(frame, frame.area(), &self.state) {
                     let _ = self
                         .action_tx
                         .send(Action::Error(format!("Failed to draw: {:?}", err)));

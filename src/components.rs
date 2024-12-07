@@ -1,17 +1,12 @@
 use color_eyre::Result;
 use crossterm::event::{KeyEvent, MouseEvent};
-use ratatui::{
-    layout::{Constraint, Rect, Size},
-    Frame,
-};
+use ratatui::{layout::Rect, Frame};
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{action::Action, config::Config, state::State, tui::Event};
 
-pub mod error_component;
 pub mod footer_component;
 pub mod header_component;
-pub mod loading_component;
 pub mod pipelines_viewer_component;
 pub mod project_selector_component;
 pub mod utils;

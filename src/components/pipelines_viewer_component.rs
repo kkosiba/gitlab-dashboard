@@ -6,7 +6,7 @@ use std::cmp::{max, min};
 use std::string::ToString;
 use tokio::sync::mpsc::UnboundedSender;
 
-use super::utils::{prepare_layout, Body, Element};
+use super::utils::{get_block, prepare_layout, Body, Element};
 use super::Component;
 use crate::state::State;
 use crate::{
@@ -23,6 +23,7 @@ pub struct PipelinesViewerComponent {
     pub active_filters: Vec<String>,
     pub active_page: usize, // add 1 to this, as default will make it 0
     pub pipelines_data: PipelinesData,
+    show_details_popup: bool,
 }
 
 impl PipelinesViewerComponent {
@@ -63,6 +64,11 @@ impl PipelinesViewerComponent {
             }
         }
     }
+
+    fn show_details(&mut self, state: &mut State) {
+        let projects = &self.config.core.gitlab_projects;
+        state.active_gitlab_project = Some(projects[self.active_operation_index].clone());
+    }
 }
 
 impl Component for PipelinesViewerComponent {
@@ -80,6 +86,10 @@ impl Component for PipelinesViewerComponent {
         match action {
             Action::Next => self.next(),
             Action::Previous => self.previous(),
+            Action::Enter => self.show_details(state),
+            Action::FocusUp => state.focused_component = 0, // change to header
+            Action::FocusDown => state.focused_component = 3, // change to footer
+            Action::FocusLeft => state.focused_component = 1, // change to project selector
             Action::Tick => {
                 // add any logic here that should run on every tick
             }
@@ -91,8 +101,9 @@ impl Component for PipelinesViewerComponent {
         Ok(None)
     }
 
-    fn draw(&mut self, frame: &mut Frame, area: Rect, _state: &State) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect, state: &State) -> Result<()> {
         let area = prepare_layout(area, Element::Body(Body::RightColumn));
+        let block = get_block(state, 2, Color::Green);
         match &self.pipelines_data {
             PipelinesData::Loading => {
                 let loading_message = vec![Line::from(Span::styled(
@@ -101,8 +112,10 @@ impl Component for PipelinesViewerComponent {
                         .fg(Color::Yellow)
                         .add_modifier(Modifier::BOLD),
                 ))];
-                let block = Paragraph::new(loading_message).alignment(Alignment::Center);
-                frame.render_widget(block, area);
+                let paragraph = Paragraph::new(loading_message)
+                    .block(block)
+                    .alignment(Alignment::Center);
+                frame.render_widget(paragraph, area);
             }
             PipelinesData::Loaded(pipelines) => {
                 let header_row = vec![
@@ -160,7 +173,7 @@ impl Component for PipelinesViewerComponent {
                 .header(header_row)
                 .flex(Flex::SpaceAround)
                 .block(
-                    Block::default()
+                    block
                         .padding(Padding::uniform(1))
                         .title("Pipelines")
                         .title(
@@ -170,7 +183,6 @@ impl Component for PipelinesViewerComponent {
                             )
                             .right_aligned(),
                         )
-                        .borders(Borders::ALL)
                         .title_bottom(
                             Line::from(format!(
                                 "{} of {}",
@@ -183,14 +195,26 @@ impl Component for PipelinesViewerComponent {
                 );
 
                 frame.render_widget(table, area);
+
+                if self.show_details_popup {
+                    let pipeline_id = pipelines[self.active_operation_index].id;
+                    // TODO: here we need to send a request to GitLab to fetch some pipeline
+                    // details (or process what we already have, tbd)
+                    let block = Block::bordered().title(format!("Details for: {}", pipeline_id));
+                    let area = popup_area(area, 60, 20);
+                    frame.render_widget(Clear, area); // this clears out the background
+                    frame.render_widget(block, area);
+                }
             }
             PipelinesData::Errors(error) => {
                 let loading_message = vec![Line::from(Span::styled(
                     format!("ERROR: {}", error),
                     Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
                 ))];
-                let block = Paragraph::new(loading_message).alignment(Alignment::Center);
-                frame.render_widget(block, area);
+                let paragraph = Paragraph::new(loading_message)
+                    .block(block)
+                    .alignment(Alignment::Center);
+                frame.render_widget(paragraph, area);
             }
         }
         Ok(())
@@ -238,4 +262,13 @@ pub fn build_paginator(total_pages: usize, current_page: usize) -> String {
     pagination.push_str("L>");
 
     pagination
+}
+
+/// helper function to create a centered rect using up certain percentage of the available rect `r`
+fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
+    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
+    let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
+    let [area] = vertical.areas(area);
+    let [area] = horizontal.areas(area);
+    area
 }

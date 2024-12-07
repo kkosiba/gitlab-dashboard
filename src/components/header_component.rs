@@ -1,7 +1,7 @@
 use color_eyre::Result;
 use ratatui::prelude::*;
 
-use crate::state::State;
+use crate::{action::Action, state::State};
 
 use super::{
     utils::{prepare_layout, Element},
@@ -13,11 +13,19 @@ pub struct HeaderComponent {}
 
 impl HeaderComponent {
     pub fn new() -> Self {
-        Self {}
+        Self::default()
     }
 }
 
 impl Component for HeaderComponent {
+    fn update(&mut self, action: Action, state: &mut State) -> Result<Option<Action>> {
+        match action {
+            Action::FocusDown => state.focused_component = 2, // change to pipelines viewer
+            _ => {}
+        }
+        Ok(None)
+    }
+
     fn draw(&mut self, frame: &mut Frame, area: Rect, state: &State) -> Result<()> {
         let area = prepare_layout(area, Element::Header);
         // Split the area into two horizontal chunks

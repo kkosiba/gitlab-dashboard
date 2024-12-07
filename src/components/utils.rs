@@ -1,4 +1,10 @@
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use ratatui::{
+    layout::{Constraint, Direction, Layout, Rect},
+    style::{Color, Style},
+    widgets::{Block, BorderType},
+};
+
+use crate::state::State;
 
 pub enum Body {
     LeftColumn,
@@ -15,7 +21,7 @@ pub fn prepare_layout(area: Rect, position: Element) -> Rect {
     // First, we do the vertical split into header, body and footer
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Max(1), Constraint::Fill(1), Constraint::Max(1)])
+        .constraints([Constraint::Max(2), Constraint::Fill(1), Constraint::Max(3)])
         .split(area);
 
     // Then, depending on the position, we return the chunk which should be used to render specific
@@ -36,4 +42,18 @@ pub fn prepare_layout(area: Rect, position: Element) -> Rect {
             }
         }
     }
+}
+
+pub fn get_block(state: &State, focused_component: usize, focused_border_color: Color) -> Block {
+    Block::bordered()
+        .border_type(if state.focused_component == focused_component {
+            BorderType::Thick
+        } else {
+            BorderType::Plain
+        })
+        .border_style(if state.focused_component == focused_component {
+            Style::default().fg(focused_border_color)
+        } else {
+            Style::default()
+        })
 }

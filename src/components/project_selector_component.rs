@@ -3,7 +3,7 @@ use ratatui::{prelude::*, widgets::*};
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{
-    utils::{prepare_layout, Body, Element},
+    utils::{get_block, prepare_layout, Body, Element},
     Component,
 };
 use crate::{action::Action, config::Config, state::State};
@@ -55,13 +55,17 @@ impl Component for ProjectSelectorComponent {
             Action::Next => self.next(),
             Action::Previous => self.previous(),
             Action::Enter => self.select_project(state),
+            Action::FocusUp => state.focused_component = 0, // change to header
+            Action::FocusDown => state.focused_component = 3, // change to footer
+            Action::FocusRight => state.focused_component = 2, // change to pipelines viewer
             _ => {}
         }
         Ok(None)
     }
 
-    fn draw(&mut self, frame: &mut Frame, area: Rect, _state: &State) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect, state: &State) -> Result<()> {
         let area = prepare_layout(area, Element::Body(Body::LeftColumn));
+        let block = get_block(state, 1, Color::LightMagenta);
         let projects = &self.config.core.gitlab_projects;
         let list_items: Vec<ListItem> = projects.iter().map(|i| ListItem::new(i.clone())).collect();
 
@@ -70,9 +74,8 @@ impl Component for ProjectSelectorComponent {
 
         let list = List::new(list_items)
             .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title("GitLab Project Selector")
+                block
+                    .title("Project Selector")
                     .title_alignment(Alignment::Center),
             )
             .highlight_style(

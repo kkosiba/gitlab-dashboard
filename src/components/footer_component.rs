@@ -1,10 +1,13 @@
 use color_eyre::Result;
-use ratatui::prelude::*;
+use ratatui::{
+    prelude::*,
+    widgets::{Block, BorderType, Paragraph},
+};
 
-use crate::state::State;
+use crate::{action::Action, state::State};
 
 use super::{
-    utils::{prepare_layout, Element},
+    utils::{get_block, prepare_layout, Element},
     Component,
 };
 
@@ -13,34 +16,34 @@ pub struct FooterComponent {}
 
 impl FooterComponent {
     pub fn new() -> Self {
-        Self {}
+        Self::default()
     }
 }
 
 impl Component for FooterComponent {
-    fn draw(&mut self, frame: &mut Frame<'_>, area: Rect, _state: &State) -> Result<()> {
-        let area = prepare_layout(area, Element::Footer);
-        frame.render_widget(
-            Line::from(vec![
-                Span::styled("[ ", Style::default().fg(Color::White)),
-                Span::styled(
-                    format!("h/l - left/right pane {} ", symbols::DOT),
-                    Style::default().fg(Color::Blue),
-                ),
-                Span::styled(
-                    format!("j/k - next/prev item {} ", symbols::DOT),
-                    Style::default().fg(Color::Blue),
-                ),
-                Span::styled(
-                    format!("p - focus project selector {} ", symbols::DOT),
-                    Style::default().fg(Color::Blue),
-                ),
-                Span::styled("q - quit", Style::default().fg(Color::Red)),
-                Span::styled(" ]", Style::default().fg(Color::White)),
-            ]),
-            area,
-        );
+    fn update(&mut self, action: Action, state: &mut State) -> Result<Option<Action>> {
+        match action {
+            Action::FocusUp => state.focused_component = 2, // change to pipelines viewer
+            _ => {}
+        }
+        Ok(None)
+    }
 
+    fn draw(&mut self, frame: &mut Frame, area: Rect, state: &State) -> Result<()> {
+        let area = prepare_layout(area, Element::Footer);
+        let footer = Line::from_iter(
+            vec![
+                "Keybindigs: ",
+                "j/k - next/prev item | ",
+                "ENTER - select item | ",
+                "SHIFT+h/j/k/l - change focus | ",
+                "q - quit",
+            ]
+            .into_iter(),
+        );
+        let block = get_block(state, 3, Color::LightBlue);
+        let paragraph = Paragraph::new(footer).block(block);
+        frame.render_widget(paragraph, area);
         Ok(())
     }
 }

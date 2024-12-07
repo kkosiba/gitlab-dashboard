@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crossterm::event::KeyEvent;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
@@ -16,7 +18,7 @@ use color_eyre::Result;
 
 pub struct App {
     config: Config,
-    components: Vec<Box<dyn Component>>,
+    components: HashMap<usize, Box<dyn Component>>,
     should_quit: bool,
     mode: Mode,
     last_tick_key_events: Vec<KeyEvent>,
@@ -34,17 +36,17 @@ pub enum Mode {
 impl App {
     pub fn new(config: Config) -> Result<Self> {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
+        let components_vec: Vec<Box<dyn Component>> = vec![
+            Box::new(HeaderComponent::new()),
+            Box::new(ProjectSelectorComponent::new()),
+            Box::new(PipelinesViewerComponent::new()),
+            Box::new(FooterComponent::new()),
+        ];
+
         let state = State::default();
         Ok(Self {
             config,
-            // Pre-define all components to use
-            components: vec![
-                Box::new(HeaderComponent::new()),
-                Box::new(ProjectSelectorComponent::new()),
-                //Box::new(LoadingComponent::new()),
-                Box::new(PipelinesViewerComponent::new()),
-                Box::new(FooterComponent::new()),
-            ],
+            components: HashMap::from_iter(components_vec.into_iter().enumerate()),
             should_quit: false,
             mode: Mode::Home,
             last_tick_key_events: Vec::new(),
@@ -59,13 +61,13 @@ impl App {
         // .mouse(true) // uncomment this line to enable mouse support
         tui.enter()?;
 
-        for component in self.components.iter_mut() {
+        for (_, component) in self.components.iter_mut() {
             component.register_action_handler(self.action_tx.clone())?;
         }
-        for component in self.components.iter_mut() {
+        for (_, component) in self.components.iter_mut() {
             component.register_config_handler(self.config.clone())?;
         }
-        for component in self.components.iter_mut() {
+        for (_, component) in self.components.iter_mut() {
             component.init(&self.state)?;
         }
 
@@ -93,7 +95,7 @@ impl App {
             Event::Key(key) => self.handle_key_event(key)?,
             _ => {}
         }
-        for component in self.components.iter_mut() {
+        for (_, component) in self.components.iter_mut() {
             if let Some(action) = component.handle_events(Some(event.clone()), &mut self.state)? {
                 action_tx.send(action)?;
             }
@@ -134,7 +136,7 @@ impl App {
                 Action::Render => self.render(tui)?,
                 _ => {}
             }
-            for component in self.components.iter_mut() {
+            for (_, component) in self.components.iter_mut() {
                 if let Some(action) = component.update(action.clone(), &mut self.state)? {
                     self.action_tx.send(action)?
                 };
@@ -145,7 +147,7 @@ impl App {
 
     fn render(&mut self, tui: &mut Tui) -> Result<()> {
         tui.draw(|frame| {
-            for component in self.components.iter_mut() {
+            for (_, component) in self.components.iter_mut() {
                 if let Err(err) = component.draw(frame, frame.area(), &self.state) {
                     let _ = self
                         .action_tx

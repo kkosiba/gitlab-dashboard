@@ -7,7 +7,6 @@ use tokio::sync::mpsc;
 use crate::action::Action;
 use crate::components::footer_component::FooterComponent;
 use crate::components::header_component::HeaderComponent;
-//use crate::components::loading_component::LoadingComponent;
 use crate::components::pipelines_viewer_component::PipelinesViewerComponent;
 use crate::components::project_selector_component::ProjectSelectorComponent;
 use crate::components::Component;

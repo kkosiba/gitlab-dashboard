@@ -20,16 +20,21 @@ impl ProjectSelectorComponent {
         Self::default()
     }
 
-    fn next(&mut self) {
-        let projects = &self.config.core.gitlab_projects;
-        if self.active_operation_index < projects.len() - 1 {
-            self.active_operation_index += 1;
+    fn next(&mut self, state: &State) {
+        if state.focused_component == 1 {
+            let projects = &self.config.core.gitlab_projects;
+
+            if self.active_operation_index < projects.len() - 1 {
+                self.active_operation_index += 1;
+            }
         }
     }
 
-    fn previous(&mut self) {
-        if self.active_operation_index > 0 {
-            self.active_operation_index -= 1;
+    fn previous(&mut self, state: &State) {
+        if state.focused_component == 1 {
+            if self.active_operation_index > 0 {
+                self.active_operation_index -= 1;
+            }
         }
     }
 
@@ -52,8 +57,8 @@ impl Component for ProjectSelectorComponent {
 
     fn update(&mut self, action: Action, state: &mut State) -> Result<Option<Action>> {
         match action {
-            Action::Next => self.next(),
-            Action::Previous => self.previous(),
+            Action::Next => self.next(state),
+            Action::Previous => self.previous(state),
             Action::Enter => self.select_project(state),
             Action::FocusUp => state.focused_component = 0, // change to header
             Action::FocusDown => state.focused_component = 3, // change to footer

@@ -1,4 +1,3 @@
-use color_eyre::eyre::Error;
 use color_eyre::Result;
 use layout::Flex;
 use ratatui::{prelude::*, widgets::*};
@@ -8,11 +7,12 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use super::utils::{get_block, prepare_layout, Body, Element};
 use super::Component;
+use crate::gitlab::fetch_pipelines;
 use crate::state::State;
 use crate::{
     action::Action,
     config::Config,
-    gitlab::{fetch_pipelines, PipelineStatus, PipelinesData},
+    gitlab::{PipelineStatus, PipelinesData},
 };
 
 #[derive(Default)]

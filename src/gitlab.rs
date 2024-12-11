@@ -1,12 +1,9 @@
 use color_eyre::Result;
+use reqwest::Client;
 use std::env;
 
 use chrono::{DateTime, Utc};
 use color_eyre::eyre::Error;
-use gitlab::{
-    api::{self, projects::pipelines::Pipelines, Pagination, Query},
-    Gitlab,
-};
 use serde::Deserialize;
 
 #[derive(Default)]
@@ -75,11 +72,31 @@ pub fn fetch_pipelines(
     gitlab_url: String,
     gitlab_project: String,
     pagination_limit: usize,
-) -> Result<Vec<GitlabPipeline>> {
+) -> Result<Vec<GitlabPipeline>, color_eyre::eyre::Report> {
     let token = env::var("GITLAB_PERSONAL_ACCESS_TOKEN")?;
-    let client = Gitlab::new(gitlab_url, token)?;
-    let endpoint = Pipelines::builder().project(gitlab_project).build()?;
-    let pipelines: Vec<GitlabPipeline> =
-        api::paged(endpoint, Pagination::Limit(pagination_limit)).query(&client)?;
-    Ok(pipelines)
+    let client = Client::new();
+    let url = format!("{}/projects/{}/pipelines", gitlab_url, gitlab_project);
+
+    // Create a tokio runtime to block on the async operation
+    let rt = tokio::runtime::Runtime::new()?;
+
+    // Block on the async task
+    let response = rt.block_on(async {
+        client
+            .get(&url)
+            .bearer_auth(token)
+            .query(&[("per_page", pagination_limit.to_string())])
+            .send()
+            .await
+    })?;
+
+    if response.status().is_success() {
+        let pipelines = rt.block_on(response.json::<Vec<GitlabPipeline>>())?;
+        Ok(pipelines)
+    } else {
+        Err(color_eyre::eyre::eyre!(
+            "Failed to fetch pipelines: {}",
+            response.status()
+        ))
+    }
 }

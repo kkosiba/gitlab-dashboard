@@ -41,8 +41,10 @@ impl App {
             Box::new(PipelinesViewerComponent::new()),
             Box::new(FooterComponent::new()),
         ];
-
-        let state = State::default();
+        let state = State {
+            focused_component: 1, // Focus on project selector when the application starts
+            ..Default::default()
+        };
         Ok(Self {
             config,
             components: HashMap::from_iter(components_vec.into_iter().enumerate()),
